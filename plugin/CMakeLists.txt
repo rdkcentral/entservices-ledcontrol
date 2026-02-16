@@ -67,6 +67,8 @@ endif (RDK_SERVICES_L2_TEST)
 
 target_compile_definitions(${PLUGIN_IMPLEMENTATION} PRIVATE MODULE_NAME=Plugin_${PLUGIN_NAME})
 
+target_compile_options(${PLUGIN_IMPLEMENTATION} PRIVATE -Wno-error)
+
 find_package(DS)
 if (DS_FOUND)
     find_package(IARMBus)

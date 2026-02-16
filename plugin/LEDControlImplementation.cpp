@@ -78,6 +78,7 @@ namespace WPEFramework
         LEDControlImplementation::~LEDControlImplementation()
         {
             LOGINFO("LEDControlImplementation Destructor called\n");
+            printf("LEDControlImplementation Destructor called %s");
             if (m_isPlatInitialized) {
                 LOGINFO("Doing plat uninit; dsFPTerm\n");
                 try {
