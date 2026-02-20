@@ -98,7 +98,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-ledcontrol
           path: entservices-ledcontrol
-          ref: develop
+          ref: feature/RDKEMW-12801-LedControl
 
       - name: Checkout entservices-testframework
         uses: actions/checkout@v3
@@ -143,6 +143,7 @@ jobs:
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/error_code_R4_4.patch
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/1004-Add-support-for-project-dir.patch
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/RDKEMW-733-Add-ENTOS-IDS.patch
+          patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/Increase_Timout_For_L2Tests_Plugin.patch
           cd -
 
       - name: Build Thunder
@@ -175,6 +176,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/entservices-apis
           patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/RDKEMW-1007.patch
+          patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/add-l2tests-interface.patch
           cd -
 
       - name: Build entservices-apis

@@ -85,7 +85,6 @@ LEDControl_L2test::LEDControl_L2test()
         if (m_controller_LED) {
             EXPECT_TRUE(m_LEDplugin != nullptr);
             if (m_LEDplugin) {
-                m_LEDplugin->AddRef();
             } else {
                 TEST_LOG("m_LEDplugin is NULL");
             }
