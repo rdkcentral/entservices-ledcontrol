@@ -67,18 +67,27 @@ endif (RDK_SERVICES_L2_TEST)
 
 target_compile_definitions(${PLUGIN_IMPLEMENTATION} PRIVATE MODULE_NAME=Plugin_${PLUGIN_NAME})
 
-find_package(DS)
-if (DS_FOUND)
-    find_package(IARMBus)
-    add_definitions(-DDS_FOUND)
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_INCLUDE_DIRS})
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${OEMHAL_LIBRARIES} -lpthread -lglib-2.0 -ldbus-1 ${IARMBUS_LIBRARIES})
-#    target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${DS_LIBRARIES})
-else (DS_FOUND)
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
-endif(DS_FOUND)
+find_package(Binder QUIET)
+if (Binder_FOUND)
+    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_INCLUDE_DIRS})
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_LIBRARIES})
+else()
+    # Fall back to conventional binder library names when no cmake package is available
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE libbinder.so libutils.so)
+endif()
+
+# AIDL indicator HAL headers
+find_path(AIDL_INDICATOR_INCLUDE_DIR
+    NAMES com/rdk/hal/indicator/IIndicator.h
+    HINTS /usr/include /usr/local/include)
+if (AIDL_INDICATOR_INCLUDE_DIR)
+    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${AIDL_INDICATOR_INCLUDE_DIR})
+else()
+    message(WARNING "Could not find AIDL indicator headers – build may fail")
+endif()
+
+target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins -lpthread)
 
 #target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 
