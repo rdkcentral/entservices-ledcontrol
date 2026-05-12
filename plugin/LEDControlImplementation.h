@@ -19,18 +19,18 @@
 
 #pragma once
 
+#include <binder/IServiceManager.h>
+#include <binder/ProcessState.h>
+#include <utils/StrongPointer.h>
+#include <com/rdk/hal/indicator/IIndicatorManager.h>
+#include <com/rdk/hal/indicator/IIndicator.h>
+
 #include "Module.h"
 
 #include <com/com.h>
 #include <core/core.h>
 #include <interfaces/Ids.h>
 #include <interfaces/ILEDControl.h>
-
-#include <binder/IServiceManager.h>
-#include <binder/ProcessState.h>
-#include <utils/StrongPointer.h>
-#include <com/rdk/hal/indicator/IIndicatorManager.h>
-#include <com/rdk/hal/indicator/IIndicator.h>
 
 namespace WPEFramework
 {

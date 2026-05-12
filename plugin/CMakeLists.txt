@@ -32,7 +32,7 @@ add_library(${MODULE_NAME} SHARED
         Module.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
-        CXX_STANDARD 11
+        CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES)
 
 target_include_directories(${MODULE_NAME} PRIVATE ../helpers)
@@ -52,7 +52,7 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
 )
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
-        CXX_STANDARD 11
+        CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES)
 
 if (RDK_SERVICE_L2_TEST)
