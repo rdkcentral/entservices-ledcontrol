@@ -82,6 +82,12 @@ find_path(AIDL_INDICATOR_INCLUDE_DIR
     HINTS /usr/include /usr/local/include)
 if (AIDL_INDICATOR_INCLUDE_DIR)
     target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${AIDL_INDICATOR_INCLUDE_DIR})
+    # Compile AIDL-generated stub sources that define vtables (e.g. Capabilities).
+    # Without this, libWPEFrameworkLEDControlImplementation.so is missing vtable
+    # symbols at runtime: undefined symbol _ZTVN3com3rdk3hal9indicator12CapabilitiesE
+    file(GLOB AIDL_INDICATOR_STUBS
+        "${AIDL_INDICATOR_INCLUDE_DIR}/com/rdk/hal/indicator/*.cpp")
+    target_sources(${PLUGIN_IMPLEMENTATION} PRIVATE ${AIDL_INDICATOR_STUBS})
 else()
     message(WARNING "Could not find AIDL indicator headers – build may fail")
 endif()
