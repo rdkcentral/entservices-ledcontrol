@@ -132,6 +132,9 @@ namespace WPEFramework
             if (aidlState == android::String16("WPS_CONNECTED"))           { state = LEDControlState::LEDSTATE_WPS_CONNECTED;   return true; }
             if (aidlState == android::String16("WPS_ERROR"))               { state = LEDControlState::LEDSTATE_WPS_ERROR;       return true; }
             if (aidlState == android::String16("FULL_SYSTEM_RESET"))       { state = LEDControlState::LEDSTATE_FACTORY_RESET;   return true; }
+            if (aidlState == android::String16("IP_ACQUIRED"))             { state = LEDControlState::LEDSTATE_ACTIVE;          return true; }
+            if (aidlState == android::String16("OFF"))                     { state = LEDControlState::LEDSTATE_STANDBY;         return true; }
+            if (aidlState == android::String16("DEEP_SLEEP"))              { state = LEDControlState::LEDSTATE_STANDBY;         return true; }
             if (aidlState == android::String16("USB_UPGRADE"))             { state = LEDControlState::LEDSTATE_USB_UPGRADE;     return true; }
             if (aidlState == android::String16("SOFTWARE_DOWNLOAD_ERROR")) { state = LEDControlState::LEDSTATE_DOWNLOAD_ERROR;  return true; }
             return false;
@@ -216,8 +219,9 @@ namespace WPEFramework
             }
 
             if (!aidlStateToLEDControlState(aidlState, ledState)) {
-                LOGERR("Unrecognised AIDL state returned by IIndicator::get\n");
-                return Core::ERROR_READ_ERROR;
+                LOGWARN("Unrecognised AIDL state returned by IIndicator::get; defaulting to LEDSTATE_NONE\n");
+                ledState = WPEFramework::Exchange::ILEDControl::LEDSTATE_NONE;
+                return Core::ERROR_NONE;
             }
             return Core::ERROR_NONE;
         }
