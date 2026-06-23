@@ -95,6 +95,48 @@ namespace WPEFramework
         }
 
         /************************ Helper Functions *************************/
+        namespace {
+            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
+
+            struct LEDStateMapEntry {
+                LEDControlState ledState;
+                dsFPDLedState_t dsState;
+                const char* name;
+            };
+
+            constexpr LEDStateMapEntry kLEDStateMap[] = {
+                { LEDControlState::LEDSTATE_NONE,           dsFPD_LED_DEVICE_NONE,                    "NONE" },
+                { LEDControlState::LEDSTATE_ACTIVE,         dsFPD_LED_DEVICE_ACTIVE,                  "ACTIVE" },
+                { LEDControlState::LEDSTATE_STANDBY,        dsFPD_LED_DEVICE_STANDBY,                 "STANDBY" },
+                { LEDControlState::LEDSTATE_WPS_CONNECTING, dsFPD_LED_DEVICE_WPS_CONNECTING,          "WPS_CONNECTING" },
+                { LEDControlState::LEDSTATE_WPS_CONNECTED,  dsFPD_LED_DEVICE_WPS_CONNECTED,           "WPS_CONNECTED" },
+                { LEDControlState::LEDSTATE_WPS_ERROR,      dsFPD_LED_DEVICE_WPS_ERROR,               "WPS_ERROR" },
+                { LEDControlState::LEDSTATE_FACTORY_RESET,  dsFPD_LED_DEVICE_FACTORY_RESET,           "FACTORY_RESET" },
+                { LEDControlState::LEDSTATE_USB_UPGRADE,    dsFPD_LED_DEVICE_USB_UPGRADE,             "USB_UPGRADE" },
+                { LEDControlState::LEDSTATE_DOWNLOAD_ERROR, dsFPD_LED_DEVICE_SOFTWARE_DOWNLOAD_ERROR, "DOWNLOAD_ERROR" },
+            };
+
+            const LEDStateMapEntry* findByLEDState(const LEDControlState state)
+            {
+                for (const auto& entry : kLEDStateMap) {
+                    if (entry.ledState == state) {
+                        return &entry;
+                    }
+                }
+                return nullptr;
+            }
+
+            const LEDStateMapEntry* findByDSState(const dsFPDLedState_t state)
+            {
+                for (const auto& entry : kLEDStateMap) {
+                    if (entry.dsState == state) {
+                        return &entry;
+                    }
+                }
+                return nullptr;
+            }
+        }
+
         /***
          * @brief: Map ILEDControl::LEDControlState to AIDL indicator state string
          * @param[in] state The LED control state
@@ -147,20 +189,8 @@ namespace WPEFramework
          */
         static const char* LEDControlStateToString(WPEFramework::Exchange::ILEDControl::LEDControlState state)
         {
-            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
-            switch (state) {
-                case LEDControlState::LEDSTATE_NONE:            return "NONE";
-                case LEDControlState::LEDSTATE_ACTIVE:          return "ACTIVE";
-                case LEDControlState::LEDSTATE_STANDBY:         return "STANDBY";
-                case LEDControlState::LEDSTATE_WPS_CONNECTING:  return "WPS_CONNECTING";
-                case LEDControlState::LEDSTATE_WPS_CONNECTED:   return "WPS_CONNECTED";
-                case LEDControlState::LEDSTATE_WPS_ERROR:       return "WPS_ERROR";
-                case LEDControlState::LEDSTATE_FACTORY_RESET:   return "FACTORY_RESET";
-                case LEDControlState::LEDSTATE_USB_UPGRADE:     return "USB_UPGRADE";
-                case LEDControlState::LEDSTATE_DOWNLOAD_ERROR:  return "DOWNLOAD_ERROR";
-                case LEDControlState::LEDSTATE_MAX:
-                default: return nullptr;
-            }
+            const auto* entry = findByLEDState(state);
+            return (entry != nullptr) ? entry->name : nullptr;
         }
 
         /************************ Plugin Methods ************************/
