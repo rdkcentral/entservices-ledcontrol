@@ -100,36 +100,25 @@ namespace WPEFramework
 
             struct LEDStateMapEntry {
                 LEDControlState ledState;
-                dsFPDLedState_t dsState;
                 const char* name;
             };
 
             constexpr LEDStateMapEntry kLEDStateMap[] = {
-                { LEDControlState::LEDSTATE_NONE,           dsFPD_LED_DEVICE_NONE,                    "NONE" },
-                { LEDControlState::LEDSTATE_ACTIVE,         dsFPD_LED_DEVICE_ACTIVE,                  "ACTIVE" },
-                { LEDControlState::LEDSTATE_STANDBY,        dsFPD_LED_DEVICE_STANDBY,                 "STANDBY" },
-                { LEDControlState::LEDSTATE_WPS_CONNECTING, dsFPD_LED_DEVICE_WPS_CONNECTING,          "WPS_CONNECTING" },
-                { LEDControlState::LEDSTATE_WPS_CONNECTED,  dsFPD_LED_DEVICE_WPS_CONNECTED,           "WPS_CONNECTED" },
-                { LEDControlState::LEDSTATE_WPS_ERROR,      dsFPD_LED_DEVICE_WPS_ERROR,               "WPS_ERROR" },
-                { LEDControlState::LEDSTATE_FACTORY_RESET,  dsFPD_LED_DEVICE_FACTORY_RESET,           "FACTORY_RESET" },
-                { LEDControlState::LEDSTATE_USB_UPGRADE,    dsFPD_LED_DEVICE_USB_UPGRADE,             "USB_UPGRADE" },
-                { LEDControlState::LEDSTATE_DOWNLOAD_ERROR, dsFPD_LED_DEVICE_SOFTWARE_DOWNLOAD_ERROR, "DOWNLOAD_ERROR" },
+                { LEDControlState::LEDSTATE_NONE,           "NONE" },
+                { LEDControlState::LEDSTATE_ACTIVE,         "ACTIVE" },
+                { LEDControlState::LEDSTATE_STANDBY,        "STANDBY" },
+                { LEDControlState::LEDSTATE_WPS_CONNECTING, "WPS_CONNECTING" },
+                { LEDControlState::LEDSTATE_WPS_CONNECTED,  "WPS_CONNECTED" },
+                { LEDControlState::LEDSTATE_WPS_ERROR,      "WPS_ERROR" },
+                { LEDControlState::LEDSTATE_FACTORY_RESET,  "FACTORY_RESET" },
+                { LEDControlState::LEDSTATE_USB_UPGRADE,    "USB_UPGRADE" },
+                { LEDControlState::LEDSTATE_DOWNLOAD_ERROR, "DOWNLOAD_ERROR" },
             };
 
             const LEDStateMapEntry* findByLEDState(const LEDControlState state)
             {
                 for (const auto& entry : kLEDStateMap) {
                     if (entry.ledState == state) {
-                        return &entry;
-                    }
-                }
-                return nullptr;
-            }
-
-            const LEDStateMapEntry* findByDSState(const dsFPDLedState_t state)
-            {
-                for (const auto& entry : kLEDStateMap) {
-                    if (entry.dsState == state) {
                         return &entry;
                     }
                 }
