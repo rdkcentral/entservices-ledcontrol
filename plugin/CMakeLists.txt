@@ -89,7 +89,7 @@ if (AIDL_INDICATOR_INCLUDE_DIR)
         "${AIDL_INDICATOR_INCLUDE_DIR}/com/rdk/hal/indicator/*.cpp")
     target_sources(${PLUGIN_IMPLEMENTATION} PRIVATE ${AIDL_INDICATOR_STUBS})
 else()
-    message(WARNING "Could not find AIDL indicator headers – build may fail")
+    message(FATAL_ERROR "Could not find AIDL indicator headers")
 endif()
 
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
