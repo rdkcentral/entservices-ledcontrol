@@ -95,6 +95,68 @@ namespace WPEFramework
         }
 
         /************************ Helper Functions *************************/
+        namespace {
+            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
+
+            struct LEDStateMapEntry {
+                LEDControlState ledState;
+                const char* name;
+                const char* aidlName;
+            };
+
+            struct AidlAliasEntry {
+                const char* aidlName;
+                LEDControlState ledState;
+            };
+
+            constexpr LEDStateMapEntry kLEDStateMap[] = {
+                { LEDControlState::LEDSTATE_NONE,           "NONE",           nullptr },
+                { LEDControlState::LEDSTATE_ACTIVE,         "ACTIVE",         "ACTIVE" },
+                { LEDControlState::LEDSTATE_STANDBY,        "STANDBY",        "STANDBY" },
+                { LEDControlState::LEDSTATE_WPS_CONNECTING, "WPS_CONNECTING", "WPS_CONNECTING" },
+                { LEDControlState::LEDSTATE_WPS_CONNECTED,  "WPS_CONNECTED",  "WPS_CONNECTED" },
+                { LEDControlState::LEDSTATE_WPS_ERROR,      "WPS_ERROR",      "WPS_ERROR" },
+                { LEDControlState::LEDSTATE_FACTORY_RESET,  "FACTORY_RESET",  "FULL_SYSTEM_RESET" },
+                { LEDControlState::LEDSTATE_USB_UPGRADE,    "USB_UPGRADE",    "USB_UPGRADE" },
+                { LEDControlState::LEDSTATE_DOWNLOAD_ERROR, "DOWNLOAD_ERROR", "SOFTWARE_DOWNLOAD_ERROR" },
+            };
+
+            constexpr AidlAliasEntry kAidlAliasMap[] = {
+                { "IP_ACQUIRED", LEDControlState::LEDSTATE_ACTIVE },
+                { "OFF",         LEDControlState::LEDSTATE_STANDBY },
+                { "DEEP_SLEEP",  LEDControlState::LEDSTATE_STANDBY },
+            };
+
+            const LEDStateMapEntry* findByLEDState(const LEDControlState state)
+            {
+                for (const auto& entry : kLEDStateMap) {
+                    if (entry.ledState == state) {
+                        return &entry;
+                    }
+                }
+                return nullptr;
+            }
+
+            bool findByAidlState(const android::String16& aidlState, LEDControlState& state)
+            {
+                for (const auto& entry : kLEDStateMap) {
+                    if (entry.aidlName != nullptr && aidlState == android::String16(entry.aidlName)) {
+                        state = entry.ledState;
+                        return true;
+                    }
+                }
+
+                for (const auto& alias : kAidlAliasMap) {
+                    if (aidlState == android::String16(alias.aidlName)) {
+                        state = alias.ledState;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
         /***
          * @brief: Map ILEDControl::LEDControlState to AIDL indicator state string
          * @param[in] state The LED control state
@@ -102,18 +164,8 @@ namespace WPEFramework
          */
         static const char* ledControlStateToAidlState(WPEFramework::Exchange::ILEDControl::LEDControlState state)
         {
-            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
-            switch (state) {
-                case LEDControlState::LEDSTATE_ACTIVE:          return "ACTIVE";
-                case LEDControlState::LEDSTATE_STANDBY:         return "STANDBY";
-                case LEDControlState::LEDSTATE_WPS_CONNECTING:  return "WPS_CONNECTING";
-                case LEDControlState::LEDSTATE_WPS_CONNECTED:   return "WPS_CONNECTED";
-                case LEDControlState::LEDSTATE_WPS_ERROR:       return "WPS_ERROR";
-                case LEDControlState::LEDSTATE_FACTORY_RESET:   return "FULL_SYSTEM_RESET";
-                case LEDControlState::LEDSTATE_USB_UPGRADE:     return "USB_UPGRADE";
-                case LEDControlState::LEDSTATE_DOWNLOAD_ERROR:  return "SOFTWARE_DOWNLOAD_ERROR";
-                default:                                         return nullptr;
-            }
+            const auto* entry = findByLEDState(state);
+            return (entry != nullptr) ? entry->aidlName : nullptr;
         }
 
         /***
@@ -125,19 +177,7 @@ namespace WPEFramework
         static bool aidlStateToLEDControlState(const android::String16& aidlState,
                                                WPEFramework::Exchange::ILEDControl::LEDControlState& state)
         {
-            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
-            if (aidlState == android::String16("ACTIVE"))                  { state = LEDControlState::LEDSTATE_ACTIVE;          return true; }
-            if (aidlState == android::String16("STANDBY"))                 { state = LEDControlState::LEDSTATE_STANDBY;         return true; }
-            if (aidlState == android::String16("WPS_CONNECTING"))          { state = LEDControlState::LEDSTATE_WPS_CONNECTING;  return true; }
-            if (aidlState == android::String16("WPS_CONNECTED"))           { state = LEDControlState::LEDSTATE_WPS_CONNECTED;   return true; }
-            if (aidlState == android::String16("WPS_ERROR"))               { state = LEDControlState::LEDSTATE_WPS_ERROR;       return true; }
-            if (aidlState == android::String16("FULL_SYSTEM_RESET"))       { state = LEDControlState::LEDSTATE_FACTORY_RESET;   return true; }
-            if (aidlState == android::String16("IP_ACQUIRED"))             { state = LEDControlState::LEDSTATE_ACTIVE;          return true; }
-            if (aidlState == android::String16("OFF"))                     { state = LEDControlState::LEDSTATE_STANDBY;         return true; }
-            if (aidlState == android::String16("DEEP_SLEEP"))              { state = LEDControlState::LEDSTATE_STANDBY;         return true; }
-            if (aidlState == android::String16("USB_UPGRADE"))             { state = LEDControlState::LEDSTATE_USB_UPGRADE;     return true; }
-            if (aidlState == android::String16("SOFTWARE_DOWNLOAD_ERROR")) { state = LEDControlState::LEDSTATE_DOWNLOAD_ERROR;  return true; }
-            return false;
+            return findByAidlState(aidlState, state);
         }
 
         /***
@@ -147,20 +187,8 @@ namespace WPEFramework
          */
         static const char* LEDControlStateToString(WPEFramework::Exchange::ILEDControl::LEDControlState state)
         {
-            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
-            switch (state) {
-                case LEDControlState::LEDSTATE_NONE:            return "NONE";
-                case LEDControlState::LEDSTATE_ACTIVE:          return "ACTIVE";
-                case LEDControlState::LEDSTATE_STANDBY:         return "STANDBY";
-                case LEDControlState::LEDSTATE_WPS_CONNECTING:  return "WPS_CONNECTING";
-                case LEDControlState::LEDSTATE_WPS_CONNECTED:   return "WPS_CONNECTED";
-                case LEDControlState::LEDSTATE_WPS_ERROR:       return "WPS_ERROR";
-                case LEDControlState::LEDSTATE_FACTORY_RESET:   return "FACTORY_RESET";
-                case LEDControlState::LEDSTATE_USB_UPGRADE:     return "USB_UPGRADE";
-                case LEDControlState::LEDSTATE_DOWNLOAD_ERROR:  return "DOWNLOAD_ERROR";
-                case LEDControlState::LEDSTATE_MAX:
-                default: return nullptr;
-            }
+            const auto* entry = findByLEDState(state);
+            return (entry != nullptr) ? entry->name : nullptr;
         }
 
         /************************ Plugin Methods ************************/
