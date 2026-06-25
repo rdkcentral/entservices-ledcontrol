@@ -22,9 +22,13 @@
 #include <core/Portability.h>
 #include <interfaces/ILEDControl.h>
 
-#include "dsFPD.h"
-#include "dsError.h"
-#include "dsFPDTypes.h"
+#include <binder/IServiceManager.h>
+#include <binder/ProcessState.h>
+#include <utils/StrongPointer.h>
+#include <com/rdk/hal/indicator/IIndicatorManager.h>
+#include <com/rdk/hal/indicator/IIndicator.h>
+#include <com/rdk/hal/indicator/Capabilities.h>
+
 #include "UtilsLogging.h"
 
 namespace WPEFramework
@@ -35,43 +39,47 @@ namespace WPEFramework
 
         LEDControlImplementation::LEDControlImplementation()
         : m_isPlatInitialized(false)
-        , m_SupportedLEDStates((unsigned int)dsFPD_LED_DEVICE_NONE)
+        , m_indicatorManager(nullptr)
+        , m_indicator(nullptr)
         {
             LOGINFO("LEDControlImplementation Constructor called\n");
-            if (!m_isPlatInitialized) {
-                LOGINFO("Doing plat init; dsFPInit\n");
-                try {
-                    dsError_t err = dsERR_NONE;
-                    if ((err = dsFPInit()) != dsERR_NONE) {
-                        LOGERR("dsFPInit failed: %d\n", err);
-                    } else {
-                        m_isPlatInitialized = true;
-                        // Start a worker JOB to update the m_SupportedLEDStates using WPEFramework's worker pool
-                        class UpdateSupportedLEDStatesJob : public Core::IDispatch {
-                        public:
-                            UpdateSupportedLEDStatesJob(LEDControlImplementation* parent) : _parent(parent) {}
-                            void Dispatch() override {
-                                try {
-                                    unsigned int supported = (unsigned int)dsFPD_LED_DEVICE_NONE;
-                                    dsError_t err = dsFPGetSupportedLEDStates(&supported);
-                                    if (err == dsERR_NONE) {
-                                        _parent->m_SupportedLEDStates = supported;
-                                        LOGINFO("Worker m_SupportedLEDStates updated: 0x%X\n", supported);
-                                    } else {
-                                        LOGERR("Worker dsFPGetSupportedLEDStates failed: %d\n", err);
-                                    }
-                                } catch (...) {
-                                    LOGERR("Worker got exception updating m_SupportedLEDStates\n");
-                                }
-                            }
-                        private:
-                            LEDControlImplementation* _parent;
-                        };
-                        Core::IWorkerPool::Instance().Submit(Core::ProxyType<Core::IDispatch>(Core::ProxyType<UpdateSupportedLEDStatesJob>::Create(this)));
-                    }
-                } catch (...) {
-                    LOGERR("Exception caught during dsFPInit");
+            LOGINFO("Acquiring AIDL indicator service\n");
+            try {
+                android::ProcessState::self()->startThreadPool();
+
+                android::sp<android::IBinder> binderSvc =
+                    android::defaultServiceManager()->getService(
+                        android::String16(com::rdk::hal::indicator::IIndicatorManager::serviceName().c_str()));
+                if (binderSvc == nullptr) {
+                    LOGERR("Failed to get indicator service from Binder ServiceManager\n");
+                    return;
                 }
+
+                m_indicatorManager = android::interface_cast<com::rdk::hal::indicator::IIndicatorManager>(binderSvc);
+                if (m_indicatorManager == nullptr) {
+                    LOGERR("Failed to cast Binder to IIndicatorManager\n");
+                    return;
+                }
+
+                std::vector<com::rdk::hal::indicator::IIndicator::Id> indicatorIds;
+                android::binder::Status st = m_indicatorManager->getIndicatorIds(&indicatorIds);
+                if (!st.isOk() || indicatorIds.empty()) {
+                    LOGERR("getIndicatorIds failed or returned empty list\n");
+                    m_indicatorManager.clear();
+                    return;
+                }
+
+                st = m_indicatorManager->getIndicator(indicatorIds[0], &m_indicator);
+                if (!st.isOk() || m_indicator == nullptr) {
+                    LOGERR("getIndicator failed\n");
+                    m_indicatorManager.clear();
+                    return;
+                }
+
+                LOGINFO("AIDL indicator service acquired successfully\n");
+                m_isPlatInitialized = true;
+            } catch (...) {
+                LOGERR("Exception caught during AIDL indicator init\n");
             }
         }
 
@@ -79,118 +87,108 @@ namespace WPEFramework
         {
             LOGINFO("LEDControlImplementation Destructor called\n");
             if (m_isPlatInitialized) {
-                LOGINFO("Doing plat uninit; dsFPTerm\n");
-                try {
-                    dsError_t err = dsFPTerm();
-                    if (dsERR_NONE != err) {
-                        LOGERR("dsFPTerm failed\n");
-                    }
-                    m_isPlatInitialized = false;
-                } catch (...) {
-                    LOGERR("Exception caught during dsFPTerm");
-                }
+                LOGINFO("Releasing AIDL indicator handles\n");
+                m_indicator.clear();
+                m_indicatorManager.clear();
+                m_isPlatInitialized = false;
             }
         }
 
         /************************ Helper Functions *************************/
+        namespace {
+            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
+
+            struct LEDStateMapEntry {
+                LEDControlState ledState;
+                const char* name;
+                const char* aidlName;
+            };
+
+            struct AidlAliasEntry {
+                const char* aidlName;
+                LEDControlState ledState;
+            };
+
+            constexpr LEDStateMapEntry kLEDStateMap[] = {
+                { LEDControlState::LEDSTATE_NONE,           "NONE",           nullptr },
+                { LEDControlState::LEDSTATE_ACTIVE,         "ACTIVE",         "ACTIVE" },
+                { LEDControlState::LEDSTATE_STANDBY,        "STANDBY",        "STANDBY" },
+                { LEDControlState::LEDSTATE_WPS_CONNECTING, "WPS_CONNECTING", "WPS_CONNECTING" },
+                { LEDControlState::LEDSTATE_WPS_CONNECTED,  "WPS_CONNECTED",  "WPS_CONNECTED" },
+                { LEDControlState::LEDSTATE_WPS_ERROR,      "WPS_ERROR",      "WPS_ERROR" },
+                { LEDControlState::LEDSTATE_FACTORY_RESET,  "FACTORY_RESET",  "FULL_SYSTEM_RESET" },
+                { LEDControlState::LEDSTATE_USB_UPGRADE,    "USB_UPGRADE",    "USB_UPGRADE" },
+                { LEDControlState::LEDSTATE_DOWNLOAD_ERROR, "DOWNLOAD_ERROR", "SOFTWARE_DOWNLOAD_ERROR" },
+            };
+
+            constexpr AidlAliasEntry kAidlAliasMap[] = {
+                { "IP_ACQUIRED", LEDControlState::LEDSTATE_ACTIVE },
+                { "OFF",         LEDControlState::LEDSTATE_STANDBY },
+                { "DEEP_SLEEP",  LEDControlState::LEDSTATE_STANDBY },
+            };
+
+            const LEDStateMapEntry* findByLEDState(const LEDControlState state)
+            {
+                for (const auto& entry : kLEDStateMap) {
+                    if (entry.ledState == state) {
+                        return &entry;
+                    }
+                }
+                return nullptr;
+            }
+
+            bool findByAidlState(const android::String16& aidlState, LEDControlState& state)
+            {
+                for (const auto& entry : kLEDStateMap) {
+                    if (entry.aidlName != nullptr && aidlState == android::String16(entry.aidlName)) {
+                        state = entry.ledState;
+                        return true;
+                    }
+                }
+
+                for (const auto& alias : kAidlAliasMap) {
+                    if (aidlState == android::String16(alias.aidlName)) {
+                        state = alias.ledState;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
         /***
-         * @brief: Map ILEDControl::LEDControlState to dsFPDLedState_t
+         * @brief: Map ILEDControl::LEDControlState to AIDL indicator state string
          * @param[in] state The LED control state
-         * @return Corresponding dsFPDLedState_t
+         * @return Corresponding AIDL state string, or nullptr if not mappable
          */
-        static dsFPDLedState_t mapFromLEDControlStateToDsFPDLedState(WPEFramework::Exchange::ILEDControl::LEDControlState state)
+        static const char* ledControlStateToAidlState(WPEFramework::Exchange::ILEDControl::LEDControlState state)
         {
-            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
-            switch (state) {
-                case LEDControlState::LEDSTATE_NONE: return dsFPD_LED_DEVICE_NONE;
-                case LEDControlState::LEDSTATE_ACTIVE: return dsFPD_LED_DEVICE_ACTIVE;
-                case LEDControlState::LEDSTATE_STANDBY: return dsFPD_LED_DEVICE_STANDBY;
-                case LEDControlState::LEDSTATE_WPS_CONNECTING: return dsFPD_LED_DEVICE_WPS_CONNECTING;
-                case LEDControlState::LEDSTATE_WPS_CONNECTED: return dsFPD_LED_DEVICE_WPS_CONNECTED;
-                case LEDControlState::LEDSTATE_WPS_ERROR: return dsFPD_LED_DEVICE_WPS_ERROR;
-                case LEDControlState::LEDSTATE_FACTORY_RESET: return dsFPD_LED_DEVICE_FACTORY_RESET;
-                case LEDControlState::LEDSTATE_USB_UPGRADE: return dsFPD_LED_DEVICE_USB_UPGRADE;
-                case LEDControlState::LEDSTATE_DOWNLOAD_ERROR: return dsFPD_LED_DEVICE_SOFTWARE_DOWNLOAD_ERROR;
-                /* The ILEDControl.h's LEDControlState has LEDSTATE_MAX defined but do not use it */
-                default:
-                    throw std::invalid_argument("Invalid LEDControlState for mapping to dsFPDLedState_t");
-            }
+            const auto* entry = findByLEDState(state);
+            return (entry != nullptr) ? entry->aidlName : nullptr;
         }
 
         /***
-         * @brief: Map dsFPDLedState_t to ILEDControl::LEDControlState
-         * @param[in] state The dsFPDLedState_t state
-         * @return Corresponding ILEDControl::LEDControlState
+         * @brief: Map AIDL indicator state string to ILEDControl::LEDControlState
+         * @param[in] aidlState The AIDL state string
+         * @param[out] state The corresponding LEDControlState
+         * @return true on success, false if the string is not recognised
          */
-        static WPEFramework::Exchange::ILEDControl::LEDControlState mapFromDsFPDLedStateToLEDControlState(dsFPDLedState_t state)
+        static bool aidlStateToLEDControlState(const android::String16& aidlState,
+                                               WPEFramework::Exchange::ILEDControl::LEDControlState& state)
         {
-            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
-            switch (state) {
-                case dsFPD_LED_DEVICE_NONE: return LEDControlState::LEDSTATE_NONE;
-                case dsFPD_LED_DEVICE_ACTIVE: return LEDControlState::LEDSTATE_ACTIVE;
-                case dsFPD_LED_DEVICE_STANDBY: return LEDControlState::LEDSTATE_STANDBY;
-                case dsFPD_LED_DEVICE_WPS_CONNECTING: return LEDControlState::LEDSTATE_WPS_CONNECTING;
-                case dsFPD_LED_DEVICE_WPS_CONNECTED: return LEDControlState::LEDSTATE_WPS_CONNECTED;
-                case dsFPD_LED_DEVICE_WPS_ERROR: return LEDControlState::LEDSTATE_WPS_ERROR;
-                case dsFPD_LED_DEVICE_FACTORY_RESET: return LEDControlState::LEDSTATE_FACTORY_RESET;
-                case dsFPD_LED_DEVICE_USB_UPGRADE: return LEDControlState::LEDSTATE_USB_UPGRADE;
-                case dsFPD_LED_DEVICE_SOFTWARE_DOWNLOAD_ERROR: return LEDControlState::LEDSTATE_DOWNLOAD_ERROR;
-                case dsFPD_LED_DEVICE_MAX:
-                default:
-                    throw std::invalid_argument("Invalid dsFPDLedState_t for mapping to LEDControlState");
-            }
+            return findByAidlState(aidlState, state);
         }
 
         /***
-         * @brief: Map LEDControlState to string
+         * @brief: Map LEDControlState to display string (for response building)
          * @param[in] state The LEDControlState
          * @return Corresponding string representation if valid, otherwise nullptr
          */
         static const char* LEDControlStateToString(WPEFramework::Exchange::ILEDControl::LEDControlState state)
         {
-            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
-            switch (state) {
-                case LEDControlState::LEDSTATE_NONE: return "NONE";
-                case LEDControlState::LEDSTATE_ACTIVE: return "ACTIVE";
-                case LEDControlState::LEDSTATE_STANDBY: return "STANDBY";
-                case LEDControlState::LEDSTATE_WPS_CONNECTING: return "WPS_CONNECTING";
-                case LEDControlState::LEDSTATE_WPS_CONNECTED: return "WPS_CONNECTED";
-                case LEDControlState::LEDSTATE_WPS_ERROR: return "WPS_ERROR";
-                case LEDControlState::LEDSTATE_FACTORY_RESET: return "FACTORY_RESET";
-                case LEDControlState::LEDSTATE_USB_UPGRADE: return "USB_UPGRADE";
-                case LEDControlState::LEDSTATE_DOWNLOAD_ERROR: return "DOWNLOAD_ERROR";
-                // Treat LEDSTATE_MAX and greater as invalid
-                case LEDControlState::LEDSTATE_MAX:
-                default: return nullptr;
-            }
-        }
-
-        /***
-         * @brief: Map dsError_t to Core::hresult
-         * @param[in] err The dsError_t error code
-         * @return Corresponding Core::hresult, defaulting to Core::ERROR_GENERAL
-         */
-        Core::hresult getCoreErrorFromDSError(dsError_t err)
-        {
-            switch (err) {
-                case dsERR_NONE:
-                    return Core::ERROR_NONE;
-                case dsERR_GENERAL:
-                case dsERR_OPERATION_FAILED:
-                    return Core::ERROR_GENERAL;
-                case dsERR_INVALID_PARAM:
-                    return Core::ERROR_INVALID_PARAMETER;
-                case dsERR_INVALID_STATE:
-                case dsERR_ALREADY_INITIALIZED:
-                case dsERR_NOT_INITIALIZED:
-                    return Core::ERROR_ILLEGAL_STATE;
-                case dsERR_OPERATION_NOT_SUPPORTED:
-                    return Core::ERROR_NOT_SUPPORTED;
-                case dsERR_RESOURCE_NOT_AVAILABLE:
-                    return Core::ERROR_UNAVAILABLE;
-                default:
-                    return Core::ERROR_GENERAL;
-            }
+            const auto* entry = findByLEDState(state);
+            return (entry != nullptr) ? entry->name : nullptr;
         }
 
         /************************ Plugin Methods ************************/
@@ -198,39 +196,31 @@ namespace WPEFramework
         Core::hresult LEDControlImplementation::GetSupportedLEDStates(IStringIterator*& supportedLEDStates, bool& success)
         {
             LOGINFO("");
-            if (!m_isPlatInitialized) {
-                LOGERR("Platform init failed, cannot proceed.\n");
+            if (!m_isPlatInitialized || m_indicator == nullptr) {
+                LOGERR("AIDL indicator not available\n");
                 return Core::ERROR_NOT_SUPPORTED;
             }
 
-            unsigned int halSupportedLEDStates = (unsigned int)dsFPD_LED_DEVICE_MAX;
+            com::rdk::hal::indicator::Capabilities caps;
             {
                 Core::SafeSyncType<Core::CriticalSection> lock(_adminLock);
-                try {
-                    dsError_t err = dsFPGetSupportedLEDStates(&halSupportedLEDStates);
-                    if (dsERR_NONE != err) {
-                        LOGERR("dsFPGetSupportedLEDStates error %d\n", err);
-                        return getCoreErrorFromDSError(err);
-                    } else {
-                        // Refresh the cached supported LED states
-                        m_SupportedLEDStates = halSupportedLEDStates;
-                    }
-                } catch (...) {
-                    LOGERR("Exception in dsFPGetSupportedLEDStates.\n");
+                android::binder::Status st = m_indicator->getCapabilities(&caps);
+                if (!st.isOk()) {
+                    LOGERR("IIndicator::getCapabilities failed\n");
                     return Core::ERROR_GENERAL;
                 }
             }
+
             std::list<std::string> stateNames;
-            using State = WPEFramework::Exchange::ILEDControl::LEDControlState;
-            for (int i = static_cast<int>(State::LEDSTATE_NONE); i < static_cast<int>(State::LEDSTATE_MAX); ++i) {
-                const char* stateStr = LEDControlStateToString(static_cast<State>(i));
-                if (stateStr != nullptr) {
-                    // LEDControlState should be exact match with HAL supported states
-                    if (halSupportedLEDStates & (1 << i)) {
-                        stateNames.emplace_back(stateStr);
-                    } else {
-                        LOGWARN("LED state %d is not supported by HAL.\n", i);
+            for (const auto& aidlState : caps.supportedStates) {
+                WPEFramework::Exchange::ILEDControl::LEDControlState state;
+                if (aidlStateToLEDControlState(aidlState, state)) {
+                    const char* str = LEDControlStateToString(state);
+                    if (str != nullptr) {
+                        stateNames.emplace_back(str);
                     }
+                } else {
+                    LOGWARN("AIDL returned unrecognised state, skipping\n");
                 }
             }
             supportedLEDStates = Core::Service<RPC::StringIterator>::Create<RPC::IStringIterator>(stateNames);
@@ -241,31 +231,25 @@ namespace WPEFramework
         Core::hresult LEDControlImplementation::GetLEDState(WPEFramework::Exchange::ILEDControl::LEDControlState& ledState)
         {
             LOGINFO("");
-            if (!m_isPlatInitialized) {
-                LOGERR("Platform init failed, cannot proceed.\n");
+            if (!m_isPlatInitialized || m_indicator == nullptr) {
+                LOGERR("AIDL indicator not available\n");
                 return Core::ERROR_NOT_SUPPORTED;
             }
 
-            dsFPDLedState_t dsLEDState = dsFPD_LED_DEVICE_MAX;
+            android::String16 aidlState;
             {
                 Core::SafeSyncType<Core::CriticalSection> lock(_adminLock);
-                try {
-                    dsError_t err = dsFPGetLEDState(&dsLEDState);
-                    if (err != dsERR_NONE) {
-                        LOGERR("dsFPGetLEDState returned error: %d\n", err);
-                        return getCoreErrorFromDSError(err);
-                    }
-                } catch (...) {
-                    LOGERR("Exception in dsFPGetLEDState.\n");
+                android::binder::Status st = m_indicator->get(&aidlState);
+                if (!st.isOk()) {
+                    LOGERR("IIndicator::get failed\n");
                     return Core::ERROR_GENERAL;
                 }
             }
 
-            try {
-                ledState = mapFromDsFPDLedStateToLEDControlState(dsLEDState);
-            } catch (const std::invalid_argument& e) {
-                LOGERR("Exception in mapFromDsFPDLedStateToLEDControlState dsFPDLedState_t value: %s\n", e.what());
-                return Core::ERROR_READ_ERROR;
+            if (!aidlStateToLEDControlState(aidlState, ledState)) {
+                LOGWARN("Unrecognised AIDL state returned by IIndicator::get; defaulting to LEDSTATE_NONE\n");
+                ledState = WPEFramework::Exchange::ILEDControl::LEDSTATE_NONE;
+                return Core::ERROR_NONE;
             }
             return Core::ERROR_NONE;
         }
@@ -285,40 +269,25 @@ namespace WPEFramework
         Core::hresult LEDControlImplementation::SetLEDState(const WPEFramework::Exchange::ILEDControl::LEDControlState& state, bool& success)
         {
             LOGINFO("");
-            if (!m_isPlatInitialized) {
-                LOGERR("Platform init failed, cannot proceed.\n");
+            if (!m_isPlatInitialized || m_indicator == nullptr) {
+                LOGERR("AIDL indicator not available\n");
                 return Core::ERROR_NOT_SUPPORTED;
             }
 
-            dsFPDLedState_t dsLEDState = dsFPD_LED_DEVICE_MAX;
-            try {
-                dsLEDState = mapFromLEDControlStateToDsFPDLedState(state);
-            } catch (const std::invalid_argument& e) {
-                LOGERR("Invalid dsFPDLedState_t value: %s\n", e.what());
+            const char* aidlStateStr = ledControlStateToAidlState(state);
+            if (aidlStateStr == nullptr) {
+                LOGERR("Invalid LEDControlState %d cannot be mapped to AIDL state\n", static_cast<int>(state));
                 return Core::ERROR_BAD_REQUEST;
             }
-            // return error if requested state is unsupported
-            if (!(m_SupportedLEDStates & (1 << static_cast<int>(dsLEDState)))) {
-                LOGERR("Requested LED state 0x%X(dsLEDState 0x%x) is unsupported, supported states: 0x%X\n",
-                        (1 << static_cast<int>(state)), static_cast<int>(dsLEDState), m_SupportedLEDStates);
-                return Core::ERROR_NOT_SUPPORTED;
-            }
 
-            dsError_t err = dsERR_NONE;
+            bool setResult = false;
             {
                 Core::SafeSyncType<Core::CriticalSection> lock(_adminLock);
-                try {
-                    err = dsFPSetLEDState(dsLEDState);
-                } catch (...) {
-                    LOGERR("Exception in dsFPSetLEDState\n");
+                android::binder::Status st = m_indicator->set(android::String16(aidlStateStr), &setResult);
+                if (!st.isOk() || !setResult) {
+                    LOGERR("IIndicator::set(%s) failed\n", aidlStateStr);
                     return Core::ERROR_GENERAL;
                 }
-            }
-            if (err != dsERR_NONE) {
-                Core::hresult rc = getCoreErrorFromDSError(err);
-                LOGERR("Failed to set LED state to 0x%X (dsLEDState 0x%x), dsFPGetLEDState returned error: %d\n",
-                        (1 << static_cast<int>(state)), static_cast<int>(dsLEDState), err);
-                return rc;
             }
             success = true;
             return Core::ERROR_NONE;

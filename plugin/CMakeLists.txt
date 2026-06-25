@@ -24,7 +24,6 @@ set(PLUGIN_LEDCONTROL_STARTUPORDER "" CACHE STRING "To configure startup order o
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(${NAMESPACE}Plugins REQUIRED)
-find_package(${NAMESPACE}Helpers REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 
@@ -33,15 +32,16 @@ add_library(${MODULE_NAME} SHARED
         Module.cpp)
 
 set_target_properties(${MODULE_NAME} PROPERTIES
-        CXX_STANDARD 11
+        CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES)
+
+target_include_directories(${MODULE_NAME} PRIVATE ../helpers)
 
 target_link_libraries(${MODULE_NAME}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
-        ${NAMESPACE}Definitions::${NAMESPACE}Definitions
-        ${NAMESPACE}::${NAMESPACE}Helpers)
+        ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 
 install(TARGETS ${MODULE_NAME}
         DESTINATION lib/${STORAGE_DIRECTORY}/plugins)
@@ -52,7 +52,7 @@ add_library(${PLUGIN_IMPLEMENTATION} SHARED
 )
 
 set_target_properties(${PLUGIN_IMPLEMENTATION} PROPERTIES
-        CXX_STANDARD 11
+        CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES)
 
 if (RDK_SERVICE_L2_TEST)
@@ -67,17 +67,33 @@ endif (RDK_SERVICES_L2_TEST)
 
 target_compile_definitions(${PLUGIN_IMPLEMENTATION} PRIVATE MODULE_NAME=Plugin_${PLUGIN_NAME})
 
-find_package(DS)
-if (DS_FOUND)
-    find_package(IARMBus)
-    add_definitions(-DDS_FOUND)
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${IARMBUS_INCLUDE_DIRS})
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DS_INCLUDE_DIRS})
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${IARMBUS_LIBRARIES} ${OEMHAL_LIBRARIES} -lpthread -lglib-2.0 -ldbus-1 ${IARMBUS_LIBRARIES} ${NAMESPACE}::${NAMESPACE}Helpers)
-#    target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${DS_LIBRARIES})
-else (DS_FOUND)
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
-endif(DS_FOUND)
+find_package(Binder QUIET)
+if (Binder_FOUND)
+    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_INCLUDE_DIRS})
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_LIBRARIES})
+else()
+    # Fall back to conventional binder library names when no cmake package is available
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE libbinder.so libutils.so)
+endif()
+
+# AIDL indicator HAL headers
+find_path(AIDL_INDICATOR_INCLUDE_DIR
+    NAMES com/rdk/hal/indicator/IIndicator.h
+    HINTS /usr/include /usr/local/include)
+if (AIDL_INDICATOR_INCLUDE_DIR)
+    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${AIDL_INDICATOR_INCLUDE_DIR})
+    # Compile AIDL-generated stub sources that define vtables (e.g. Capabilities).
+    # Without this, libWPEFrameworkLEDControlImplementation.so is missing vtable
+    # symbols at runtime: undefined symbol _ZTVN3com3rdk3hal9indicator12CapabilitiesE
+    file(GLOB AIDL_INDICATOR_STUBS
+        "${AIDL_INDICATOR_INCLUDE_DIR}/com/rdk/hal/indicator/*.cpp")
+    target_sources(${PLUGIN_IMPLEMENTATION} PRIVATE ${AIDL_INDICATOR_STUBS})
+else()
+    message(FATAL_ERROR "Could not find AIDL indicator headers")
+endif()
+
+target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins -lpthread)
 
 #target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 
