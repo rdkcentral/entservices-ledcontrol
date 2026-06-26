@@ -93,6 +93,7 @@ else()
 endif()
 
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE hal_aidl)
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins -lpthread)
 
 #target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
