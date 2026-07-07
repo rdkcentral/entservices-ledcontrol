@@ -6,16 +6,16 @@ git clone git@github.com:rdkcentral/entservices-ledcontrol.git
 
 cd entservices-ledcontrol/Tests/vDeviceTests
 
-Execute the suiteManager with time:
-python3 suiteManager.py -t ledindicator 
+Execute the suiteManager without profiling:
+python3 SuiteManager.py
 
-Execute the suiteManager without time:
-python3 suiteManager.py ledindicator 
+Execute the suiteManager with profiling enabled:
+python3 SuiteManager.py -time 
 
-Plugin Activation will be done in the initial stage while running the suiteManager
+Plugin Activation will be done in the initial stage while running the SuiteManager
 
 Plugin activation is now done by default before suite execution:
-- ledindicator -> Controller.1.activate(callsign=org.rdk.LEDControl)
+- org.rdk.LEDControl -> Controller.1.activate(callsign=org.rdk.LEDControl)
 
 Disable default activation only if needed:
 - export AUTO_ACTIVATE_PLUGINS=0
@@ -36,19 +36,33 @@ Useful overrides:
 
 Examples:
 
-# when running directly inside QEMU guest (services on localhost)
-python3 suiteManager.py ledindicator
+# when running directly inside QEMU guest (services on localhost) without profiling
+python3 SuiteManager.py
 
-# when running from host against QEMU target IP
+# when running directly inside QEMU guest (services on localhost) with profiling
+python3 SuiteManager.py -time
+
+# when running from host against QEMU target IP without profiling
 export TARGET_HOST=192.168.1.50
 export JSONRPC_PORT=9998
 export VCOMPONENT_PORT=8080
-python3 suiteManager.py ledindicator
+python3 SuiteManager.py
 
-# full URL override form
+# when running from host against QEMU target IP with profiling
+export TARGET_HOST=192.168.1.50
+export JSONRPC_PORT=9998
+export VCOMPONENT_PORT=8080
+python3 SuiteManager.py -time
+
+# full URL override form without profiling
 export WPEFRAMEWORK_JSONRPC_URL=http://192.168.1.50:9998/jsonrpc
 export VCOMPONENT_API_URL=http://192.168.1.50:8080/api/postKVP
-python3 suiteManager.py ledindicator
+python3 SuiteManager.py
+
+# full URL override form with profiling
+export WPEFRAMEWORK_JSONRPC_URL=http://192.168.1.50:9998/jsonrpc
+export VCOMPONENT_API_URL=http://192.168.1.50:8080/api/postKVP
+python3 SuiteManager.py -time
 
 
 errors incase if any:-

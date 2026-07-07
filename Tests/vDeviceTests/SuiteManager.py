@@ -158,20 +158,17 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     profiling_enabled = False
 
-    if args and args[0] == "-t":
-        profiling_enabled = True
-        args = args[1:]
+    # Only allow: no arguments or -time flag
+    if args:
+        if len(args) == 1 and args[0] == "-time":
+            profiling_enabled = True
+        else:
+            print("Usage: python3 SuiteManager.py [-time]")
+            print("  python3 SuiteManager.py          - Run suite without profiling")
+            print("  python3 SuiteManager.py -time    - Run suite with profiling enabled")
+            sys.exit(1)
 
-    if len(args) < 1:
-        print("Usage: python suiteManager.py [-t] <suite_name>")
-        print(f"Available suites: {list(SUITES.keys())}")
-        sys.exit(1)
-
-    suite_arg = normalize_suite_name(args[0])
-    matching = [k for k in SUITES if normalize_suite_name(k) == suite_arg]
-    if not matching:
-        log_error(f"Unknown suite '{args[0]}'. Available: {list(SUITES.keys())}")
-        sys.exit(1)
-
-    ok = run_suite(matching[0], profiling_enabled=profiling_enabled)
+    # Always run the "ledindicator" suite
+    suite_name = "ledindicator"
+    ok = run_suite(suite_name, profiling_enabled=profiling_enabled)
     sys.exit(0 if ok else 1)
