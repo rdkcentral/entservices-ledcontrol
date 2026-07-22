@@ -70,7 +70,8 @@ jobs:
             curl \
             jq \
             ca-certificates \
-            netcat-openbsd
+            netcat-openbsd \
+            git-lfs
 
       - name: Verify repository qemu image directory
         run: |
@@ -90,6 +91,8 @@ jobs:
           latest_release_download_url="https://github.com/$GITHUB_REPOSITORY/releases/latest/download/$GITHUB_IMAGE_ASSET_NAME"
           repo_image_tar="$GITHUB_WORKSPACE/$QEMU_IMAGE_DIR/DefaultImage.tar.gz"
           image_download_url="${QEMU_IMAGE_URL:-}"
+          source_repo_dir="$QEMU_WORKDIR/entservices-hdmicecsource-source"
+          source_repo_image_tar="$source_repo_dir/Tests/vDeviceTests/qemu-images/DefaultImage.tar.gz"
 
           # Prefer repository-local image tar from qemu-images/.
           if [[ -f "$repo_image_tar" ]]; then
@@ -105,6 +108,24 @@ jobs:
               "$image_download_url" \
               -o "$image_tar"
           else
+            echo "Repository image not found. Trying fallback source repository..."
+            rm -rf "$source_repo_dir"
+            GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 --single-branch --branch qemu \
+              "https://github.com/rdkcentral/entservices-hdmicecsource.git" \
+              "$source_repo_dir" || true
+
+            if [[ -d "$source_repo_dir/.git" ]]; then
+              (
+                cd "$source_repo_dir"
+                git lfs install --local || true
+                git lfs pull --include="Tests/vDeviceTests/qemu-images/DefaultImage.tar.gz" || true
+              )
+            fi
+
+            if [[ -f "$source_repo_image_tar" ]]; then
+              echo "Using fallback image from entservices-hdmicecsource repository"
+              cp -f "$source_repo_image_tar" "$image_tar"
+            else
             if [[ -z "${GH_TOKEN:-}" ]]; then
               echo "ERROR: github.token is not available for release asset download" >&2
               exit 1
@@ -148,6 +169,7 @@ jobs:
                 -w 'GET HTTP:%{http_code} SIZE:%{size_download} TOTAL:%{time_total}s\n' \
                 "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" \
                 -o "$image_tar"
+            fi
             fi
           fi
 
