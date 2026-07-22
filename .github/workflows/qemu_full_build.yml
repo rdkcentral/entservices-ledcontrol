@@ -69,17 +69,11 @@ jobs:
             curl \
             jq \
             ca-certificates \
-            netcat-openbsd \
-            git-lfs
+            netcat-openbsd
 
-      - name: Pull Git LFS assets for QEMU images
+      - name: Verify repository qemu image directory
         run: |
           set -euo pipefail
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git rev-parse --git-dir
-          git lfs version
-          git lfs install --local
-          git lfs pull --include="qemu-images/*"
           ls -lh "$GITHUB_WORKSPACE/qemu-images/" || true
 
       - name: Download and prepare kernel/rootfs from repository qemu-images
@@ -137,7 +131,7 @@ jobs:
           # Detect accidental Git LFS pointer checkout before extraction.
           if head -n 1 "$image_tar" | grep -q 'version https://git-lfs.github.com/spec/v1'; then
             echo "ERROR: $image_tar is a Git LFS pointer, not the real artifact." >&2
-            echo "Ensure git-lfs is installed and LFS objects are pulled in the workflow." >&2
+            echo "Provide a real tarball at qemu-images/DefaultImage.tar.gz or publish the asset in GitHub Releases." >&2
             exit 1
           fi
 
