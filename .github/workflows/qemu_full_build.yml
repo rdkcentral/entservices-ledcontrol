@@ -13,7 +13,7 @@ on:
 jobs:
   build-and-deploy-to-qemu:
     name: Build entservices-ledcontrol and deploy into QEMU
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     container:
       image: ghcr.io/rdkcentral/docker-rdk-ci:latest
     defaults:
@@ -22,11 +22,13 @@ jobs:
     env:
       QEMU_WORKDIR: /tmp/qemu-artifacts
       SSH_HOST_PORT: '5522'
-      SSH_HOST_PORT_ALT: '5523'
+      WPEFRAMEWORK_HOST_PORT: '59998'
+      VCOMPONENT_HOST_PORT: '58080'
       QEMU_SSH_USER: root
       QEMU_GUEST_LIB_DIR: /usr/lib/wpeframework/plugins
       SKIP_COMPONENT_BUILD: 'true'
       GITHUB_IMAGE_ASSET_NAME: DefaultImage.tar.gz
+      QEMU_IMAGE_DIR: qemu-images
       QEMU_RUN_SCRIPT_FILE: run_qemu.sh
 
     steps:
@@ -67,9 +69,20 @@ jobs:
             curl \
             jq \
             ca-certificates \
-            netcat-openbsd
+            netcat-openbsd \
+            git-lfs
 
-      - name: Download and prepare kernel/rootfs from GitHub Release
+      - name: Pull Git LFS assets for QEMU images
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git rev-parse --git-dir
+          git lfs version
+          git lfs install --local
+          git lfs pull --include="qemu-images/*"
+          ls -lh "$GITHUB_WORKSPACE/qemu-images/" || true
+
+      - name: Download and prepare kernel/rootfs from repository qemu-images
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -79,41 +92,61 @@ jobs:
           image_tar="$QEMU_WORKDIR/DefaultImage.tar.gz"
           extract_dir="$QEMU_WORKDIR/image"
           releases_api="https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest"
+          repo_image_tar="$GITHUB_WORKSPACE/$QEMU_IMAGE_DIR/DefaultImage.tar.gz"
 
-          if [[ -z "${GH_TOKEN:-}" ]]; then
-            echo "ERROR: github.token is not available for release asset download" >&2
-            exit 1
+          # Prefer repository-local image tar from qemu-images/.
+          if [[ -f "$repo_image_tar" ]]; then
+            echo "Using repository-local image tar: $repo_image_tar"
+            cp -f "$repo_image_tar" "$image_tar"
+          else
+            if [[ -z "${GH_TOKEN:-}" ]]; then
+              echo "ERROR: github.token is not available for release asset download" >&2
+              exit 1
+            fi
+
+            echo "Resolving release asset from latest GitHub release..."
+            release_json="$(curl -sS -fL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "$releases_api")"
+
+            asset_id="$(echo "$release_json" | jq -r --arg name "$GITHUB_IMAGE_ASSET_NAME" '.assets[] | select(.name == $name) | .id' | head -n 1)"
+            if [[ -z "$asset_id" || "$asset_id" == "null" ]]; then
+              echo "ERROR: Asset '$GITHUB_IMAGE_ASSET_NAME' not found in latest release" >&2
+              echo "Available assets in latest release:" >&2
+              echo "$release_json" | jq -r '.assets[]?.name' | sed 's/^/  - /' >&2
+              exit 1
+            fi
+
+            echo "Downloading release asset id $asset_id ($GITHUB_IMAGE_ASSET_NAME)..."
+            curl -sS -fL \
+              --retry 3 \
+              --retry-delay 5 \
+              --connect-timeout 15 \
+              --max-time 600 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/octet-stream" \
+              -w 'GET HTTP:%{http_code} SIZE:%{size_download} TOTAL:%{time_total}s\n' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" \
+              -o "$image_tar"
           fi
-
-          echo "Resolving release asset from latest GitHub release..."
-          release_json="$(curl -sS -fL \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "$releases_api")"
-
-          asset_id="$(echo "$release_json" | jq -r --arg name "$GITHUB_IMAGE_ASSET_NAME" '.assets[] | select(.name == $name) | .id' | head -n 1)"
-          if [[ -z "$asset_id" || "$asset_id" == "null" ]]; then
-            echo "ERROR: Asset '$GITHUB_IMAGE_ASSET_NAME' not found in latest release" >&2
-            echo "Available assets in latest release:" >&2
-            echo "$release_json" | jq -r '.assets[]?.name' | sed 's/^/  - /' >&2
-            exit 1
-          fi
-
-          echo "Downloading release asset id $asset_id ($GITHUB_IMAGE_ASSET_NAME)..."
-          curl -sS -fL \
-            --retry 3 \
-            --retry-delay 5 \
-            --connect-timeout 15 \
-            --max-time 600 \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/octet-stream" \
-            -w 'GET HTTP:%{http_code} SIZE:%{size_download} TOTAL:%{time_total}s\n' \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" \
-            -o "$image_tar"
 
           rm -rf "$extract_dir"
           mkdir -p "$extract_dir"
-          tar -xzf "$image_tar" -C "$extract_dir"
+
+          # Detect accidental Git LFS pointer checkout before extraction.
+          if head -n 1 "$image_tar" | grep -q 'version https://git-lfs.github.com/spec/v1'; then
+            echo "ERROR: $image_tar is a Git LFS pointer, not the real artifact." >&2
+            echo "Ensure git-lfs is installed and LFS objects are pulled in the workflow." >&2
+            exit 1
+          fi
+
+          # Support both gzip-compressed tar and plain tar payloads.
+          if tar -tzf "$image_tar" >/dev/null 2>&1; then
+            tar -xzf "$image_tar" -C "$extract_dir"
+          else
+            tar -xf "$image_tar" -C "$extract_dir"
+          fi
 
           echo "Extracted tar contents:"
           find "$extract_dir" -type f | xargs ls -lh
@@ -139,25 +172,21 @@ jobs:
           cp -f "$kernel_src" "$QEMU_WORKDIR/kernel.bin"
           cp -f "$rootfs_src" "$QEMU_WORKDIR/rootfs.ext4"
 
-          # Ensure files are readable by QEMU process
           chmod 644 "$QEMU_WORKDIR/kernel.bin" "$QEMU_WORKDIR/rootfs.ext4"
 
           echo "Prepared runtime images in $QEMU_WORKDIR"
           ls -lh "$QEMU_WORKDIR/kernel.bin" "$QEMU_WORKDIR/rootfs.ext4"
 
-          # Verify rootfs.ext4 is a valid ext4 filesystem (not truncated/corrupted)
           echo "Verifying rootfs.ext4 integrity..."
           file "$QEMU_WORKDIR/rootfs.ext4"
           if ! file "$QEMU_WORKDIR/rootfs.ext4" | grep -qi 'ext4.*filesystem'; then
             echo "ERROR: rootfs.ext4 is not a valid ext4 filesystem. File may be truncated or corrupted." >&2
-            echo "Expected: ext4 filesystem (at least 500M)" >&2
             exit 1
           fi
 
-          # Compute checksums for debugging
           sha256sum "$QEMU_WORKDIR/kernel.bin" "$QEMU_WORKDIR/rootfs.ext4" || true
 
-          run_script_src="$GITHUB_WORKSPACE/Tests/vDeviceTests/qemu-images/$QEMU_RUN_SCRIPT_FILE"
+          run_script_src="$GITHUB_WORKSPACE/$QEMU_IMAGE_DIR/$QEMU_RUN_SCRIPT_FILE"
           if [[ -f "$run_script_src" ]]; then
             cp -f "$run_script_src" "$QEMU_WORKDIR/run_qemu.sh"
             chmod +x "$QEMU_WORKDIR/run_qemu.sh"
@@ -172,24 +201,15 @@ jobs:
           echo "qemu-system-x86_64 version:"
           qemu-system-x86_64 --version | head -n 1
 
-          # Use KVM if available for fast boot; fall back to TCG (slow ~5-10 min)
-          # TCG uses IvyBridge to match the validated run_qemu.sh CPU model
           if [[ -r /dev/kvm ]]; then
             accel_args="-machine q35,accel=kvm -enable-kvm -cpu host"
             echo "KVM available, using hardware acceleration"
           else
             accel_args="-machine q35,accel=tcg -cpu IvyBridge"
-            echo "KVM not available, using software emulation with IvyBridge CPU (boot may take 5-10 minutes)"
+            echo "KVM not available, using software emulation with IvyBridge CPU"
           fi
 
           echo "Launching QEMU with SSH forward host 127.0.0.1:${SSH_HOST_PORT} -> guest:22"
-
-          # Final check: rootfs must be readable
-          if [[ ! -r "$QEMU_WORKDIR/rootfs.ext4" ]]; then
-            echo "ERROR: rootfs.ext4 is not readable" >&2
-            stat "$QEMU_WORKDIR/rootfs.ext4"
-            exit 1
-          fi
 
           qemu-system-x86_64 \
             $accel_args \
@@ -200,7 +220,7 @@ jobs:
             -m 2048 \
             -display none \
             -serial file:"$QEMU_WORKDIR/serial.log" \
-            -netdev user,id=network0,hostfwd=tcp:127.0.0.1:${SSH_HOST_PORT}-:22 \
+            -netdev user,id=network0,hostfwd=tcp:127.0.0.1:${SSH_HOST_PORT}-:22,hostfwd=tcp:127.0.0.1:${WPEFRAMEWORK_HOST_PORT}-127.0.0.1:9998,hostfwd=tcp:127.0.0.1:${VCOMPONENT_HOST_PORT}-127.0.0.1:8080 \
             -device virtio-net-pci,netdev=network0 \
             -daemonize \
             -pidfile "$QEMU_WORKDIR/qemu.pid"
@@ -208,11 +228,10 @@ jobs:
           echo "QEMU started with PID: $(cat $QEMU_WORKDIR/qemu.pid)"
           if ! kill -0 "$(cat "$QEMU_WORKDIR/qemu.pid")" 2>/dev/null; then
             echo "QEMU process is not alive immediately after launch" >&2
-            echo "Checking serial output for early errors:" >&2
             tail -n 30 "$QEMU_WORKDIR/serial.log" 2>/dev/null || true
             exit 1
           fi
-          echo "Initial serial output (checking for early boot errors):"
+
           sleep 3
           tail -n 50 "$QEMU_WORKDIR/serial.log" 2>/dev/null || true
 
@@ -232,9 +251,7 @@ jobs:
 
           user_candidates=("$QEMU_SSH_USER" "root" "rdk")
 
-          # Allow up to 20 min (240 x 5s); TCG emulation needs ~10 min to boot
           for attempt in $(seq 1 240); do
-            # Abort early if QEMU process died
             if [[ -f "$QEMU_WORKDIR/qemu.pid" ]] && ! kill -0 "$(cat "$QEMU_WORKDIR/qemu.pid")" 2>/dev/null; then
               echo "QEMU process exited before SSH became ready" >&2
               break
@@ -244,14 +261,12 @@ jobs:
               echo "SSH readiness attempt $attempt/240 on port $SSH_HOST_PORT"
             fi
 
-            # Print serial log progress every 30 attempts (~2.5 min)
             if (( attempt % 30 == 0 )); then
               echo "--- boot progress at attempt $attempt ---"
               tail -n 20 "$QEMU_WORKDIR/serial.log" 2>/dev/null || true
             fi
 
             if nc -z -w2 127.0.0.1 "$SSH_HOST_PORT" 2>/dev/null; then
-              echo "TCP port $SSH_HOST_PORT is open; checking SSH login for candidate users"
               for ssh_user in "${user_candidates[@]}"; do
                 if ssh "${ssh_key_arg[@]}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -p "$SSH_HOST_PORT" "$ssh_user@127.0.0.1" 'echo SSH_READY' 2>/dev/null; then
                   echo "QEMU_SSH_PORT=$SSH_HOST_PORT" > "$QEMU_WORKDIR/ssh-target.env"
@@ -265,18 +280,123 @@ jobs:
           done
 
           echo "QEMU guest SSH did not become ready in time" >&2
-          echo "----- last 100 lines of serial.log -----" >&2
           tail -n 100 "$QEMU_WORKDIR/serial.log" >&2 || true
           exit 1
 
-      - name: Inspect guest block devices and mounts
+      - name: Wait for guest vComponent readiness
         env:
           QEMU_SSH_PRIVATE_KEY: ${{ secrets.QEMU_SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
 
           if [[ -f "$QEMU_WORKDIR/ssh-target.env" ]]; then
-            # shellcheck disable=SC1090
+            source "$QEMU_WORKDIR/ssh-target.env"
+          fi
+
+          selected_ssh_port="${QEMU_SSH_PORT:-$SSH_HOST_PORT}"
+          selected_ssh_user="${QEMU_SSH_USER:-root}"
+
+          ssh_key_arg=()
+          if [[ -n "${QEMU_SSH_PRIVATE_KEY:-}" ]]; then
+            ssh_key_arg=(-i ~/.ssh/qemu_id_rsa)
+          fi
+
+          for attempt in $(seq 1 120); do
+            if (( attempt == 1 || attempt % 12 == 0 )); then
+              echo "vComponent readiness attempt $attempt/120 (port $VCOMPONENT_HOST_PORT)"
+            fi
+
+            if nc -z -w2 127.0.0.1 "$VCOMPONENT_HOST_PORT" 2>/dev/null; then
+              echo "vComponent is ready"
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "Timed out waiting for vComponent readiness" >&2
+          nc -zv 127.0.0.1 "$VCOMPONENT_HOST_PORT" || true
+          ssh "${ssh_key_arg[@]}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$selected_ssh_port" "$selected_ssh_user@127.0.0.1" 'ss -ltnp || true; ps w | grep -Ei "wpeframework|thunder|led" | grep -v grep || true' || true
+          exit 1
+
+      - name: Run LEDControl vDevice tests
+        env:
+          QEMU_SSH_PRIVATE_KEY: ${{ secrets.QEMU_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          default_tests_dir="$GITHUB_WORKSPACE/Tests/vDeviceTests"
+          tests_dir=""
+
+          if [[ ! -d "$default_tests_dir" ]]; then
+            echo "Tests/vDeviceTests not found in workspace. Fetching from main branch..."
+            mkdir -p "$GITHUB_WORKSPACE/Tests"
+            git clone --depth 1 --single-branch --branch main \
+              "https://github.com/rdkcentral/entservices-ledcontrol.git" \
+              "$QEMU_WORKDIR/entservices-ledcontrol-tests"
+            cp -a "$QEMU_WORKDIR/entservices-ledcontrol-tests/Tests/vDeviceTests" "$GITHUB_WORKSPACE/Tests/"
+          fi
+
+          if [[ -n "${VDEVICE_TESTS_DIR:-}" && -d "${VDEVICE_TESTS_DIR}" ]]; then
+            tests_dir="$VDEVICE_TESTS_DIR"
+          elif [[ -d "$default_tests_dir" ]]; then
+            tests_dir="$default_tests_dir"
+          fi
+
+          if [[ -z "$tests_dir" ]]; then
+            echo "Unable to locate Tests/vDeviceTests directory" >&2
+            exit 1
+          fi
+
+          cd "$tests_dir"
+
+          if [[ -f "$QEMU_WORKDIR/ssh-target.env" ]]; then
+            source "$QEMU_WORKDIR/ssh-target.env"
+          fi
+
+          selected_ssh_port="${QEMU_SSH_PORT:-$SSH_HOST_PORT}"
+          selected_ssh_user="${QEMU_SSH_USER:-root}"
+
+          ssh_key_arg=()
+          if [[ -n "${QEMU_SSH_PRIVATE_KEY:-}" ]]; then
+            ssh_key_arg=(-i ~/.ssh/qemu_id_rsa)
+          fi
+
+          JSONRPC_TUNNEL_PORT=59999
+          VCOMPONENT_TUNNEL_PORT=58081
+          ssh "${ssh_key_arg[@]}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o ExitOnForwardFailure=yes -fN \
+            -L "127.0.0.1:${JSONRPC_TUNNEL_PORT}:127.0.0.1:9998" \
+            -L "127.0.0.1:${VCOMPONENT_TUNNEL_PORT}:127.0.0.1:8080" \
+            -p "$selected_ssh_port" "$selected_ssh_user@127.0.0.1"
+
+          tunnel_pid="$(pgrep -f "127.0.0.1:${JSONRPC_TUNNEL_PORT}:127.0.0.1:9998" | head -n 1 || true)"
+          cleanup_tunnel() {
+            if [[ -n "${tunnel_pid:-}" ]]; then
+              kill "$tunnel_pid" 2>/dev/null || true
+            fi
+          }
+          trap cleanup_tunnel EXIT
+
+          nc -z -w3 127.0.0.1 "$JSONRPC_TUNNEL_PORT"
+          nc -z -w3 127.0.0.1 "$VCOMPONENT_TUNNEL_PORT"
+
+          export TARGET_HOST=127.0.0.1
+          export JSONRPC_PORT="$JSONRPC_TUNNEL_PORT"
+          export VCOMPONENT_PORT="$VCOMPONENT_TUNNEL_PORT"
+          export WPEFRAMEWORK_JSONRPC_URL="http://127.0.0.1:${JSONRPC_TUNNEL_PORT}/jsonrpc"
+          echo "Final WPEFramework endpoint: $WPEFRAMEWORK_JSONRPC_URL"
+
+          python3 SuiteManager.py ledindicator | tee "$QEMU_WORKDIR/vdevice-tests.log"
+
+      - name: Collect guest WPEFramework diagnostics
+        if: always()
+        env:
+          QEMU_SSH_PRIVATE_KEY: ${{ secrets.QEMU_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [[ -f "$QEMU_WORKDIR/ssh-target.env" ]]; then
             source "$QEMU_WORKDIR/ssh-target.env"
           fi
 
@@ -289,15 +409,17 @@ jobs:
           fi
 
           ssh "${ssh_key_arg[@]}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$selected_ssh_port" "$selected_ssh_user@127.0.0.1" '
-            echo "===== guest uname ====="
-            uname -a || true
-            echo "===== guest block devices ====="
-            lsblk -o NAME,MAJ:MIN,SIZE,TYPE,MOUNTPOINT || true
-            echo "===== guest mounts ====="
-            mount | head -n 50 || true
-            echo "===== root mount source ====="
-            findmnt / || true
-          '
+            echo "===== ps ====="
+            ps w | grep -Ei "wpeframework|thunder|led" | grep -v grep || true
+            echo "===== listening ports ====="
+            if command -v ss >/dev/null 2>&1; then
+              ss -ltnp || true
+            elif command -v netstat >/dev/null 2>&1; then
+              netstat -ltnp || true
+            fi
+            echo "===== journalctl WPEFramework ====="
+            journalctl -u WPEFramework -u wpeframework -n 200 --no-pager 2>/dev/null || true
+          ' > "$QEMU_WORKDIR/guest-wpeframework-diagnostics.log" 2>&1 || true
 
       - name: Copy new plugin .so into QEMU
         if: ${{ env.SKIP_COMPONENT_BUILD != 'true' }}
@@ -307,7 +429,6 @@ jobs:
           set -euo pipefail
 
           if [[ -f "$QEMU_WORKDIR/ssh-target.env" ]]; then
-            # shellcheck disable=SC1090
             source "$QEMU_WORKDIR/ssh-target.env"
           fi
 
