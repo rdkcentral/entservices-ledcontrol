@@ -76,24 +76,9 @@ else()
     target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE libbinder.so libutils.so)
 endif()
 
-# AIDL indicator HAL headers
-find_path(AIDL_INDICATOR_INCLUDE_DIR
-    NAMES com/rdk/hal/indicator/IIndicator.h
-    HINTS /usr/include /usr/local/include)
-if (AIDL_INDICATOR_INCLUDE_DIR)
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${AIDL_INDICATOR_INCLUDE_DIR})
-    # Compile AIDL-generated stub sources that define vtables (e.g. Capabilities).
-    # Without this, libWPEFrameworkLEDControlImplementation.so is missing vtable
-    # symbols at runtime: undefined symbol _ZTVN3com3rdk3hal9indicator12CapabilitiesE
-    file(GLOB AIDL_INDICATOR_STUBS
-        "${AIDL_INDICATOR_INCLUDE_DIR}/com/rdk/hal/indicator/*.cpp")
-    target_sources(${PLUGIN_IMPLEMENTATION} PRIVATE ${AIDL_INDICATOR_STUBS})
-else()
-    message(FATAL_ERROR "Could not find AIDL indicator headers")
-endif()
 
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE hal_aidl)
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE libindicator-v0.1.0.0-cpp)
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins -lpthread)
 
 #target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
