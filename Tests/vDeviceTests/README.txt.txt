@@ -31,7 +31,7 @@ Useful overrides:
 - TARGET_HOST (applies to both endpoints)
 - JSONRPC_PORT
 - VCOMPONENT_PORT
-- WPEFRAMEWORK_JSONRPC_URL (full URL, highest priority)
+- THUNDER_JSONRPC_URL (full URL, highest priority)
 - VCOMPONENT_API_URL (full URL, highest priority)
 
 Examples:
@@ -46,7 +46,7 @@ export VCOMPONENT_PORT=8080
 python3 suiteManager.py ledindicator
 
 # full URL override form
-export WPEFRAMEWORK_JSONRPC_URL=http://192.168.1.50:9998/jsonrpc
+export THUNDER_JSONRPC_URL=http://192.168.1.50:9998/jsonrpc
 export VCOMPONENT_API_URL=http://192.168.1.50:8080/api/postKVP
 python3 suiteManager.py ledindicator
 

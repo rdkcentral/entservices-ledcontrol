@@ -24,7 +24,7 @@
 #define API_VERSION_NUMBER_PATCH 2
 
 
-namespace WPEFramework
+namespace Thunder
 {
     namespace {
         static Plugin::Metadata<Plugin::LEDControl> metadata(
@@ -42,7 +42,7 @@ namespace WPEFramework
     namespace Plugin
     {
         /*
-         *Register Ledcontrol module as wpeframework plugin
+         *Register Ledcontrol module as thunder plugin
          **/
         SERVICE_REGISTRATION(LEDControl, API_VERSION_NUMBER_MAJOR, API_VERSION_NUMBER_MINOR, API_VERSION_NUMBER_PATCH);
 
@@ -73,7 +73,7 @@ namespace WPEFramework
 
             if(nullptr != _ledcontrol)
             {
-                // Invoking Plugin API register to wpeframework
+                // Invoking Plugin API register to thunder
                 Exchange::JLEDControl::Register(*this, _ledcontrol);
             }
             else
@@ -150,4 +150,4 @@ namespace WPEFramework
             }
         }
     } // namespace Plugin
-} // namespace WPEFramework
+} // namespace Thunder

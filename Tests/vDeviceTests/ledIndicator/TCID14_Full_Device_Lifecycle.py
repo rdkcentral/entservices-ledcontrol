@@ -55,7 +55,7 @@ def _post(yaml_file):
 
 def _get_led_state():
     resp = send_curl_command(ledIndicator_Curl.get_led_state)
-    if not resp or resp == "< No response from WPEFramework >":
+    if not resp or resp == "< No response from Thunder >":
         return None
     try:
         return json.loads(resp).get("result", {}).get("state")

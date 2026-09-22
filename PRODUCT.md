@@ -96,7 +96,7 @@ ledControl->SetLEDState(newState, success);
 ### 3. Platform Integration
 
 #### RDK Service Framework
-- **WPEFramework Plugin**: Integrated into RDK's standard service architecture
+- **Thunder Plugin**: Integrated into RDK's standard service architecture
 - **Service Discovery**: Available through standard RDK service callsign `org.rdk.LEDControl`
 - **Lifecycle Management**: Automatic startup, dependency management, and graceful shutdown
 - **Resource Sharing**: Coordinates with other RDK services for optimal resource usage

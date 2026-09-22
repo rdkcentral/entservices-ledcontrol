@@ -31,7 +31,7 @@
 
 #include "UtilsLogging.h"
 
-namespace WPEFramework
+namespace Thunder
 {
     namespace Plugin
     {
@@ -96,7 +96,7 @@ namespace WPEFramework
 
         /************************ Helper Functions *************************/
         namespace {
-            using LEDControlState = WPEFramework::Exchange::ILEDControl::LEDControlState;
+            using LEDControlState = Thunder::Exchange::ILEDControl::LEDControlState;
 
             struct LEDStateMapEntry {
                 LEDControlState ledState;
@@ -162,7 +162,7 @@ namespace WPEFramework
          * @param[in] state The LED control state
          * @return Corresponding AIDL state string, or nullptr if not mappable
          */
-        static const char* ledControlStateToAidlState(WPEFramework::Exchange::ILEDControl::LEDControlState state)
+        static const char* ledControlStateToAidlState(Thunder::Exchange::ILEDControl::LEDControlState state)
         {
             const auto* entry = findByLEDState(state);
             return (entry != nullptr) ? entry->aidlName : nullptr;
@@ -175,7 +175,7 @@ namespace WPEFramework
          * @return true on success, false if the string is not recognised
          */
         static bool aidlStateToLEDControlState(const android::String16& aidlState,
-                                               WPEFramework::Exchange::ILEDControl::LEDControlState& state)
+                                               Thunder::Exchange::ILEDControl::LEDControlState& state)
         {
             return findByAidlState(aidlState, state);
         }
@@ -185,7 +185,7 @@ namespace WPEFramework
          * @param[in] state The LEDControlState
          * @return Corresponding string representation if valid, otherwise nullptr
          */
-        static const char* LEDControlStateToString(WPEFramework::Exchange::ILEDControl::LEDControlState state)
+        static const char* LEDControlStateToString(Thunder::Exchange::ILEDControl::LEDControlState state)
         {
             const auto* entry = findByLEDState(state);
             return (entry != nullptr) ? entry->name : nullptr;
@@ -213,7 +213,7 @@ namespace WPEFramework
 
             std::list<std::string> stateNames;
             for (const auto& aidlState : caps.supportedStates) {
-                WPEFramework::Exchange::ILEDControl::LEDControlState state;
+                Thunder::Exchange::ILEDControl::LEDControlState state;
                 if (aidlStateToLEDControlState(aidlState, state)) {
                     const char* str = LEDControlStateToString(state);
                     if (str != nullptr) {
@@ -228,7 +228,7 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
 
-        Core::hresult LEDControlImplementation::GetLEDState(WPEFramework::Exchange::ILEDControl::LEDControlState& ledState)
+        Core::hresult LEDControlImplementation::GetLEDState(Thunder::Exchange::ILEDControl::LEDControlState& ledState)
         {
             LOGINFO("");
             if (!m_isPlatInitialized || m_indicator == nullptr) {
@@ -248,17 +248,17 @@ namespace WPEFramework
 
             if (!aidlStateToLEDControlState(aidlState, ledState)) {
                 LOGWARN("Unrecognised AIDL state returned by IIndicator::get; defaulting to LEDSTATE_NONE\n");
-                ledState = WPEFramework::Exchange::ILEDControl::LEDSTATE_NONE;
+                ledState = Thunder::Exchange::ILEDControl::LEDSTATE_NONE;
                 return Core::ERROR_NONE;
             }
             return Core::ERROR_NONE;
         }
 
         // New overload of GetLEDState to maintain backward compatibility
-        Core::hresult LEDControlImplementation::GetLEDState(WPEFramework::Exchange::ILEDControl::LEDState& ledState)
+        Core::hresult LEDControlImplementation::GetLEDState(Thunder::Exchange::ILEDControl::LEDState& ledState)
         {
             LOGINFO("");
-            WPEFramework::Exchange::ILEDControl::LEDControlState state = WPEFramework::Exchange::ILEDControl::LEDSTATE_MAX;
+            Thunder::Exchange::ILEDControl::LEDControlState state = Thunder::Exchange::ILEDControl::LEDSTATE_MAX;
             Core::hresult hr = GetLEDState(state);
             if (hr == Core::ERROR_NONE) {
                 ledState.state = state;
@@ -266,7 +266,7 @@ namespace WPEFramework
             return hr;
         }
 
-        Core::hresult LEDControlImplementation::SetLEDState(const WPEFramework::Exchange::ILEDControl::LEDControlState& state, bool& success)
+        Core::hresult LEDControlImplementation::SetLEDState(const Thunder::Exchange::ILEDControl::LEDControlState& state, bool& success)
         {
             LOGINFO("");
             if (!m_isPlatInitialized || m_indicator == nullptr) {
@@ -293,4 +293,4 @@ namespace WPEFramework
             return Core::ERROR_NONE;
         }
     } // namespace Plugin
-} // namespace WPEFramework
+} // namespace Thunder

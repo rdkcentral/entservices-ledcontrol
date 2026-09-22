@@ -55,7 +55,7 @@ def _post(yaml_file):
 
 def _get_led_state():
     resp = send_curl_command(ledIndicator_Curl.get_led_state)
-    if not resp or resp == "< No response from WPEFramework >":
+    if not resp or resp == "< No response from Thunder >":
         return None
     try:
         return json.loads(resp).get("result", {}).get("state")
@@ -70,7 +70,7 @@ def run_test():
     # Pre-check: USB_UPGRADE must be in supported states
     log_info("\n-- Pre-check: getSupportedLEDStates contains USB_UPGRADE --")
     supp_resp = send_curl_command(ledIndicator_Curl.get_supported_led_states)
-    if not supp_resp or supp_resp == "< No response from WPEFramework >":
+    if not supp_resp or supp_resp == "< No response from Thunder >":
         log_error("  getSupportedLEDStates: no response")
         log_error("TCID07_USB_Upgrade_Lifecycle Failed ❌")
         return False

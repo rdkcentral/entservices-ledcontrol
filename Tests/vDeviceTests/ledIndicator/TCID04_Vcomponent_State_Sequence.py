@@ -91,8 +91,8 @@ def run_test():
         time.sleep(2)
 
         curl_response = send_curl_command(ledIndicator_Curl.get_led_state)
-        if not curl_response or curl_response == "< No response from WPEFramework >":
-            log_error("  getLEDState: no response from WPEFramework")
+        if not curl_response or curl_response == "< No response from Thunder >":
+            log_error("  getLEDState: no response from Thunder")
             overall_pass = False
             continue
 

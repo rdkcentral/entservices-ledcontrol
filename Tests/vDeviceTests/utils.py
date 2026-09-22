@@ -54,8 +54,8 @@ INDICATOR_CMD_BASE = os.environ.get("INDICATOR_CMD_BASE") or _pick_existing_dir(
 TARGET_HOST = os.environ.get("TARGET_HOST", "127.0.0.1")
 JSONRPC_PORT = os.environ.get("JSONRPC_PORT", "9998")
 VCOMPONENT_PORT = os.environ.get("VCOMPONENT_PORT", "8080")
-WPEFRAMEWORK_JSONRPC_URL = (
-    os.environ.get("WPEFRAMEWORK_JSONRPC_URL")
+THUNDER_JSONRPC_URL = (
+    os.environ.get("THUNDER_JSONRPC_URL")
     or os.environ.get("JSONRPC_URL")
     or f"http://{TARGET_HOST}:{JSONRPC_PORT}/jsonrpc"
 )
@@ -94,7 +94,7 @@ def log_error(msg):
 
 
 def send_jsonrpc_command(method, params=None, request_id=1, timeout=5):
-    '''Send a JSON-RPC request to WPEFramework and return parsed response dict.
+    '''Send a JSON-RPC request to Thunder and return parsed response dict.
     Returns None when request fails or response is not JSON.
     '''
     payload = {
@@ -110,7 +110,7 @@ def send_jsonrpc_command(method, params=None, request_id=1, timeout=5):
         "-H", "Content-Type: application/json",
         "-X", "POST",
         "--data", json.dumps(payload),
-        WPEFRAMEWORK_JSONRPC_URL,
+        THUNDER_JSONRPC_URL,
     ]
 
     try:
@@ -167,7 +167,7 @@ def send_curl_command(curl_command):
 
         # Check the output response and add a message if the obtained output response is null
         if len(output_response) < 5:
-            output_response = "< No response from WPEFramework >"
+            output_response = "< No response from Thunder >"
     except:
         print("Inside Utils.py : Exception in send_curl_command function")
     finally:

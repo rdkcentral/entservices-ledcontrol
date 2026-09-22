@@ -45,7 +45,7 @@ import ledIndicator_Curl
 
 def _get_led_state():
     resp = send_curl_command(ledIndicator_Curl.get_led_state)
-    if not resp or resp == "< No response from WPEFramework >":
+    if not resp or resp == "< No response from Thunder >":
         return None
     try:
         return json.loads(resp).get("result", {}).get("state")
@@ -75,7 +75,7 @@ def run_test():
         log_info(f"\n-- setLEDState to {expected} --")
         set_resp = send_curl_command(set_cmd)
         log_warning(f"  setLEDState response: {set_resp}")
-        if not set_resp or set_resp == "< No response from WPEFramework >":
+        if not set_resp or set_resp == "< No response from Thunder >":
             log_error(f"  No response for setLEDState({expected})")
             overall_pass = False
             continue

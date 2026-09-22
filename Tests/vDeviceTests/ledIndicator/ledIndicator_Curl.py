@@ -31,7 +31,7 @@ import os
 _TARGET_HOST = os.environ.get("TARGET_HOST", "127.0.0.1")
 _JSONRPC_PORT = os.environ.get("JSONRPC_PORT", "9998")
 JSONRPC_URL = (
-    os.environ.get("WPEFRAMEWORK_JSONRPC_URL")
+    os.environ.get("THUNDER_JSONRPC_URL")
     or os.environ.get("JSONRPC_URL")
     or f"http://{_TARGET_HOST}:{_JSONRPC_PORT}/jsonrpc"
 )

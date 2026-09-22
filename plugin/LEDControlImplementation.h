@@ -32,7 +32,7 @@
 #include <interfaces/Ids.h>
 #include <interfaces/ILEDControl.h>
 
-namespace WPEFramework
+namespace Thunder
 {
     namespace Plugin
     {
@@ -69,4 +69,4 @@ namespace WPEFramework
                 Core::hresult GetLEDState(LEDControlState& ledState);
         };
     } // namespace Plugin
-} // namespace WPEFramework
+} // namespace Thunder

@@ -35,9 +35,9 @@
 #define LEDL2TEST_CALLSIGN _T("L2tests.1")
 
 using ::testing::NiceMock;
-using namespace WPEFramework;
+using namespace Thunder;
 using testing::StrictMock;
-using ::WPEFramework::Exchange::ILEDControl;
+using ::Thunder::Exchange::ILEDControl;
 
 class LEDControl_L2test : public L2TestMocks {
 protected:
@@ -214,7 +214,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_ACTIVE)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
@@ -244,7 +244,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_STANDBY)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
@@ -274,7 +274,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_WPSCONNECTING)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
@@ -304,7 +304,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_WPSCONNECTED)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
@@ -334,7 +334,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_WPSERROR)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
@@ -364,7 +364,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_RESET)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
@@ -394,7 +394,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_USBUPGRADE)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
@@ -424,7 +424,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_DOWNLOADERROR)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
@@ -454,7 +454,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_ErrorCase)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     //return dsERR_GENERAL for failure case
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
@@ -982,7 +982,7 @@ TEST_F(LEDControl_L2test, dsFPGetSupportedLEDStates_RaiseException)
 {
     uint32_t status = Core::ERROR_NONE;
     bool success = false;
-    WPEFramework::RPC::IStringIterator* supportedLEDStates;
+    Thunder::RPC::IStringIterator* supportedLEDStates;
 
     EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::Invoke([](unsigned int* states) {

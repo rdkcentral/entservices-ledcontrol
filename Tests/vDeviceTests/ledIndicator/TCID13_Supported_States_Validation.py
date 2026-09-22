@@ -63,8 +63,8 @@ def run_test():
     log_info("TCID13_test_l2_led_supported_states_validation - Scenario: getSupportedLEDStates content validation")
 
     resp = send_curl_command(ledIndicator_Curl.get_supported_led_states)
-    if not resp or resp == "< No response from WPEFramework >":
-        log_error("  No response from WPEFramework")
+    if not resp or resp == "< No response from Thunder >":
+        log_error("  No response from Thunder")
         log_error("TCID13_Supported_States_Validation Failed ❌")
         return False
 

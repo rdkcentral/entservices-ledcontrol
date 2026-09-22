@@ -2,17 +2,17 @@
 
 ## Overview
 
-The LEDControl service is a **WPEFramework plugin** for RDK (Reference Design Kit) that provides programmatic control over LED indicators on set-top boxes, streaming devices, and other customer premise equipment. It implements a standardized interface for managing LED states to indicate device operational status, connectivity states, and system events.
+The LEDControl service is a **Thunder plugin** for RDK (Reference Design Kit) that provides programmatic control over LED indicators on set-top boxes, streaming devices, and other customer premise equipment. It implements a standardized interface for managing LED states to indicate device operational status, connectivity states, and system events.
 
 ## Architectural Components
 
-### 1. Plugin Architecture (WPEFramework)
+### 1. Plugin Architecture (Thunder)
 
-The system follows WPEFramework's plugin architecture pattern:
+The system follows Thunder's plugin architecture pattern:
 
 ```
 ┌─────────────────────────────────────────┐
-│           WPEFramework Core             │
+│           Thunder Core             │
 ├─────────────────────────────────────────┤
 │         LEDControl Plugin               │
 ├─────────────────────────────────────────┤
@@ -33,7 +33,7 @@ The system follows WPEFramework's plugin architecture pattern:
 ### 2. Interface Layer
 
 #### JSON-RPC API
-- Exposes REST endpoints through WPEFramework's JSON-RPC mechanism
+- Exposes REST endpoints through Thunder's JSON-RPC mechanism
 - Automatic marshalling/unmarshalling between C++ objects and JSON
 - Registered via `Exchange::JLEDControl::Register()`
 
@@ -49,7 +49,7 @@ The service integrates with RDK's Device Settings Hardware Abstraction Layer (DS
 
 - **dsFPD (Device Settings Front Panel Display)** APIs
 - Platform-specific LED controller drivers
-- Error code mapping from DS errors to WPEFramework error codes
+- Error code mapping from DS errors to Thunder error codes
 - State validation against hardware capabilities
 
 #### Platform Initialization
@@ -62,7 +62,7 @@ The service integrates with RDK's Device Settings Hardware Abstraction Layer (DS
 
 #### Thread Safety
 - **Critical Section Locking**: All hardware operations protected by `Core::CriticalSection`
-- **Worker Pool Integration**: Background tasks use WPEFramework's worker pool
+- **Worker Pool Integration**: Background tasks use Thunder's worker pool
 - **Asynchronous Initialization**: LED capability discovery runs asynchronously
 
 #### Connection Management
@@ -104,7 +104,7 @@ LEDControlState → dsFPDLedState_t → Hardware Register
 4. **Exception Safety**: Comprehensive exception catching and logging
 
 #### Logging Integration
-- Structured logging via WPEFramework's logging system
+- Structured logging via Thunder's logging system
 - Debug, info, warning, and error level categorization
 - Performance and debugging trace support
 
@@ -117,7 +117,7 @@ LEDControlState → dsFPDLedState_t → Hardware Register
 - **Service Callsign**: `org.rdk.LEDControl` for service identification
 
 #### Build System Integration
-- CMake-based build system with WPEFramework integration
+- CMake-based build system with Thunder integration
 - Separate plugin and implementation libraries
 - Automated dependency resolution
 - Platform-specific configuration support

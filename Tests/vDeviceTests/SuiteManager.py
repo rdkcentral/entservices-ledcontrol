@@ -38,7 +38,7 @@ from utils import (
     log_info,
     log_success,
     activate_plugin,
-    WPEFRAMEWORK_JSONRPC_URL,
+    THUNDER_JSONRPC_URL,
 )
 
 
@@ -103,7 +103,7 @@ def run_suite(suite_name, profiling_enabled=False):
     auto_activate = os.environ.get("AUTO_ACTIVATE_PLUGINS", "1").lower() not in ("0", "false", "no")
     callsign = SUITE_PLUGIN_CALLSIGNS.get(suite_name)
     if auto_activate and callsign:
-        log_info(f"Auto-activating plugin '{callsign}' via {WPEFRAMEWORK_JSONRPC_URL}")
+        log_info(f"Auto-activating plugin '{callsign}' via {THUNDER_JSONRPC_URL}")
         if activate_plugin(callsign):
             log_success(f"Plugin activated: {callsign}")
             log_info("Waiting 6s for plugin to fully initialise...")
