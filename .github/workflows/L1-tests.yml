@@ -122,7 +122,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: 2.0.0
+          ref: topic/RDKEMW-23432
 
       - name: Checkout entservices-ledcontrol
         if: ${{ inputs.caller_source == 'local' }}

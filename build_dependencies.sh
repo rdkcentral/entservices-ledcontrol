@@ -34,7 +34,7 @@ cd ..
 git clone --branch develop https://github.com/rdkcentral/entservices-helpers.git
 cd "$GITHUB_WORKSPACE"
 
-git clone --branch 2.0.0 https://github.com/rdkcentral/entservices-testframework.git
+git clone --branch topic/RDKEMW-23432 https://github.com/rdkcentral/entservices-testframework.git
 
 MOCKS_DIR="$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks"
 MOCK_BINDER_OBJECT_DIR="$MOCKS_DIR/binder/obj"
