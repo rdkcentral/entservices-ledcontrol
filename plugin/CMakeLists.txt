@@ -67,18 +67,21 @@ endif (RDK_SERVICES_L2_TEST)
 
 target_compile_definitions(${PLUGIN_IMPLEMENTATION} PRIVATE MODULE_NAME=Plugin_${PLUGIN_NAME})
 
-find_package(Binder QUIET)
-if (Binder_FOUND)
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_INCLUDE_DIRS})
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_LIBRARIES})
-else()
-    # Fall back to conventional binder library names when no cmake package is available
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE libbinder.so libutils.so)
+if (NOT RDK_SERVICE_L2_TEST)
+        find_package(Binder QUIET)
+        if (Binder_FOUND)
+                target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_INCLUDE_DIRS})
+                target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_LIBRARIES})
+        else()
+                # Fall back to conventional binder library names when no cmake package is available
+                target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE libbinder.so libutils.so)
+        endif()
+
+        target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE indicator-cpp)
 endif()
 
 
 target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE indicator-cpp)
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins -lpthread)
 
 #target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)

@@ -36,6 +36,25 @@ cd "$GITHUB_WORKSPACE"
 
 git clone --branch 2.0.0 https://github.com/rdkcentral/entservices-testframework.git
 
+MOCKS_DIR="$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks"
+MOCK_BINDER_OBJECT_DIR="$MOCKS_DIR/binder/obj"
+mkdir -p "$MOCK_BINDER_OBJECT_DIR"
+${CXX:-c++} -std=c++17 -fPIC -c \
+    -I "$MOCKS_DIR/binder" \
+    -I "$MOCKS_DIR/frontpanel" \
+    "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/Capabilities.cpp" \
+    -o "$MOCK_BINDER_OBJECT_DIR/Capabilities.o"
+${CXX:-c++} -std=c++17 -fPIC -c \
+    -I "$MOCKS_DIR/binder" \
+    -I "$MOCKS_DIR/frontpanel" \
+    "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/IIndicator.cpp" \
+    -o "$MOCK_BINDER_OBJECT_DIR/IIndicator.o"
+${CXX:-c++} -std=c++17 -fPIC -c \
+    -I "$MOCKS_DIR/binder" \
+    -I "$MOCKS_DIR/frontpanel" \
+    "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/IIndicatorManager.cpp" \
+    -o "$MOCK_BINDER_OBJECT_DIR/IIndicatorManager.o"
+
 ############################
 # Build Thunder-Tools
 echo "======================================================================================"

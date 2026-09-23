@@ -303,6 +303,27 @@ jobs:
           &&
           cmake --install build/mocks    
 
+      - name: Build mock AIDL binder objects
+        run: |
+          MOCKS_DIR="$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks"
+          MOCK_BINDER_OBJECT_DIR="$MOCKS_DIR/binder/obj"
+          mkdir -p "$MOCK_BINDER_OBJECT_DIR"
+          ${CXX:-c++} -std=c++17 -fPIC -c \
+            -I "$MOCKS_DIR/binder" \
+            -I "$MOCKS_DIR/frontpanel" \
+            "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/Capabilities.cpp" \
+            -o "$MOCK_BINDER_OBJECT_DIR/Capabilities.o"
+          ${CXX:-c++} -std=c++17 -fPIC -c \
+            -I "$MOCKS_DIR/binder" \
+            -I "$MOCKS_DIR/frontpanel" \
+            "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/IIndicator.cpp" \
+            -o "$MOCK_BINDER_OBJECT_DIR/IIndicator.o"
+          ${CXX:-c++} -std=c++17 -fPIC -c \
+            -I "$MOCKS_DIR/binder" \
+            -I "$MOCKS_DIR/frontpanel" \
+            "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/IIndicatorManager.cpp" \
+            -o "$MOCK_BINDER_OBJECT_DIR/IIndicatorManager.o"
+
       - name: Checkout entservices-helpers
         uses: actions/checkout@v3
         with:
@@ -339,12 +360,12 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE="${{ env.TOOLCHAIN_FILE }}"
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DCMAKE_SHARED_LINKER_FLAGS="$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/binder/obj/Capabilities.o $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/binder/obj/IIndicator.o $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/binder/obj/IIndicatorManager.o"
           -DHIDE_NON_EXTERNAL_SYMBOLS=OFF
           -DCMAKE_CXX_FLAGS="
           -DEXCEPTIONS_ENABLE=ON
           -fprofile-arcs
           -ftest-coverage
-          -DUSE_THUNDER_R4=ON
           -DTHUNDER_VERSION=4
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
@@ -359,6 +380,9 @@ jobs:
           -I $GITHUB_WORKSPACE/install/usr/include
           -I $GITHUB_WORKSPACE/install/usr/include/WPEFramework
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/binder
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/frontpanel
+          -I $GITHUB_WORKSPACE/entservices-helpers/helpers
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Rfc.h
