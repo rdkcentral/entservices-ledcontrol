@@ -122,7 +122,7 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: 2.0.0
+          ref: topic/RDKEMW-23432
 
       - name: Checkout entservices-ledcontrol
         if: ${{ inputs.caller_source == 'local' }}
@@ -343,7 +343,6 @@ jobs:
           -fprofile-arcs
           -ftest-coverage
           -DEXCEPTIONS_ENABLE=ON
-          -DUSE_THUNDER_R4=ON
           -DTHUNDER_VERSION=4
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
@@ -392,6 +391,27 @@ jobs:
           &&
           cmake --install build/mocks
 
+      - name: Build mock AIDL binder objects
+        run: |
+          MOCKS_DIR="$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks"
+          MOCK_BINDER_OBJECT_DIR="$MOCKS_DIR/binder/obj"
+          mkdir -p "$MOCK_BINDER_OBJECT_DIR"
+          ${CXX:-c++} -std=c++17 -fPIC -c \
+            -I "$MOCKS_DIR/binder" \
+            -I "$MOCKS_DIR/frontpanel" \
+            "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/Capabilities.cpp" \
+            -o "$MOCK_BINDER_OBJECT_DIR/Capabilities.o"
+          ${CXX:-c++} -std=c++17 -fPIC -c \
+            -I "$MOCKS_DIR/binder" \
+            -I "$MOCKS_DIR/frontpanel" \
+            "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/IIndicator.cpp" \
+            -o "$MOCK_BINDER_OBJECT_DIR/IIndicator.o"
+          ${CXX:-c++} -std=c++17 -fPIC -c \
+            -I "$MOCKS_DIR/binder" \
+            -I "$MOCKS_DIR/frontpanel" \
+            "$MOCKS_DIR/frontpanel/com/rdk/hal/indicator/IIndicatorManager.cpp" \
+            -o "$MOCK_BINDER_OBJECT_DIR/IIndicatorManager.o"
+
       - name: Build entservices-ledcontrol
         run: >
           cmake -G Ninja
@@ -399,6 +419,8 @@ jobs:
           -B build/entservices-ledcontrol
           -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
           -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
+          -DRDK_SERVICE_L2_TEST=ON
+          -DCMAKE_SHARED_LINKER_FLAGS="$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/binder/obj/Capabilities.o $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/binder/obj/IIndicator.o $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/binder/obj/IIndicatorManager.o"
           -DCMAKE_CXX_FLAGS="
           -fprofile-arcs
           -ftest-coverage
@@ -417,6 +439,9 @@ jobs:
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/headers/network
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests
           -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/binder
+          -I $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/frontpanel
+          -I $GITHUB_WORKSPACE/entservices-helpers/helpers
           -I $GITHUB_WORKSPACE/install/usr/include
           -I $GITHUB_WORKSPACE/install/usr/include/WPEFramework
           -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings.h
@@ -479,7 +504,6 @@ jobs:
           -fprofile-arcs
           -ftest-coverage
           -DEXCEPTIONS_ENABLE=ON
-          -DUSE_THUNDER_R4=ON
           -DTHUNDER_VERSION=4
           -DTHUNDER_VERSION_MAJOR=4
           -DTHUNDER_VERSION_MINOR=4
