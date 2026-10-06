@@ -34,7 +34,7 @@ cd ..
 git clone --branch develop https://github.com/rdkcentral/entservices-helpers.git
 cd "$GITHUB_WORKSPACE"
 
-git clone --branch 2.0.0 https://github.com/rdkcentral/entservices-testframework.git
+git clone --branch feature/RDKEMW-25013 https://github.com/rdkcentral/entservices-testframework.git
 
 ############################
 # Build Thunder-Tools
@@ -120,7 +120,6 @@ cd entservices-testframework/Tests
 echo " Empty mocks creation to avoid compilation errors"
 echo "======================================================================================"
 mkdir -p headers
-mkdir -p headers/rdk/ds
 mkdir -p headers/rdk/iarmbus
 mkdir -p headers/rdk/iarmmgrs-hal
 mkdir -p headers/ccec/drivers
@@ -132,27 +131,6 @@ echo "==========================================================================
 echo "empty headers creation"
 cd headers
 echo "current working dir: "${PWD}
-touch rdk/ds/audioOutputPort.hpp
-touch rdk/ds/compositeIn.hpp
-touch rdk/ds/dsDisplay.h
-touch rdk/ds/dsError.h
-touch rdk/ds/dsMgr.h
-touch rdk/ds/dsTypes.h
-touch rdk/ds/dsUtl.h
-touch rdk/ds/exception.hpp
-touch rdk/ds/hdmiIn.hpp
-touch rdk/ds/host.hpp
-touch rdk/ds/list.hpp
-touch rdk/ds/manager.hpp
-touch rdk/ds/sleepMode.hpp
-touch rdk/ds/videoDevice.hpp
-touch rdk/ds/videoOutputPort.hpp
-touch rdk/ds/videoOutputPortConfig.hpp
-touch rdk/ds/videoOutputPortType.hpp
-touch rdk/ds/videoResolution.hpp
-touch rdk/ds/frontPanelIndicator.hpp
-touch rdk/ds/frontPanelConfig.hpp
-touch rdk/ds/frontPanelTextDisplay.hpp
 touch rdk/iarmbus/libIARM.h
 touch rdk/iarmbus/libIBus.h
 touch rdk/iarmbus/libIBusDaemon.h
@@ -166,8 +144,6 @@ touch telemetry_busmessage_sender.h
 touch pkg.h
 touch wpa_ctrl.h
 touch proc/readproc.h
-touch dsFPD.h
-touch dsFPDTypes.h
 echo "files created successfully"
 echo "======================================================================================"
 
