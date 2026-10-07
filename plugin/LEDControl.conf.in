@@ -1,6 +1,6 @@
 precondition = ["Platform"]
 callsign = "org.rdk.LEDControl"
-autostart = "false"
+autostart = "@PLUGIN_LEDCONTROL_AUTOSTART@"
 startuporder = "@PLUGIN_LEDCONTROL_STARTUPORDER@"
 
 configuration = JSON()

@@ -21,6 +21,8 @@ cmake_minimum_required(VERSION 3.3)
 
 find_package(Thunder)
 
+set(PLUGIN_LEDCONTROL_AUTOSTART "false" CACHE STRING "Automatically start LED control plugin")
+
 # All packages that did not deliver a CMake Find script (and some deprecated scripts that need to be removed)
 # are located in the cmake directory. Include it in the search.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
