@@ -123,7 +123,19 @@ jobs:
         with:
           repository: rdkcentral/entservices-testframework
           path: entservices-testframework
-          ref: feature/RDKEMW-25013
+          ref: 2.1.0
+
+      - name: Checkout rdk-halif-device_settings
+        uses: actions/checkout@v3
+        with:
+          repository: rdkcentral/rdk-halif-device_settings
+          path: rdk-halif-device_settings
+          ref: 6.0.1
+
+      - name: Install DeviceSettings HAL headers
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/install/usr/include"
+          cp -r "$GITHUB_WORKSPACE/rdk-halif-device_settings/include/." "$GITHUB_WORKSPACE/install/usr/include/"
 
       - name: Checkout entservices-ledcontrol
         if: ${{ inputs.caller_source == 'local' }}
@@ -308,6 +320,18 @@ jobs:
           cmake --build build/entservices-helpers
           &&
           cmake --install build/entservices-helpers
+
+      - name: Build ds-hal stub
+        run: >
+          cmake
+          -S "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings"
+          -B build/ds-hal
+          -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
+          -DCMAKE_CXX_FLAGS="-I $GITHUB_WORKSPACE/install/usr/include"
+          &&
+          cmake --build build/ds-hal -j8
+          &&
+          cmake --install build/ds-hal
 
       - name: Build mocks
         run: >

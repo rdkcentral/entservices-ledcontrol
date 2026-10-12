@@ -37,7 +37,11 @@ if [ ! -e "$GITHUB_WORKSPACE/entservices-helpers" ]; then
     ln -s "$GITHUB_WORKSPACE/../entservices-helpers" "$GITHUB_WORKSPACE/entservices-helpers"
 fi
 
-git clone --branch feature/RDKEMW-25013 https://github.com/rdkcentral/entservices-testframework.git
+git clone --branch 2.1.0 https://github.com/rdkcentral/entservices-testframework.git
+
+git clone --branch 6.0.1 https://github.com/rdkcentral/rdk-halif-device_settings.git
+mkdir -p "$GITHUB_WORKSPACE/install/usr/include"
+cp -r "$GITHUB_WORKSPACE/rdk-halif-device_settings/include/." "$GITHUB_WORKSPACE/install/usr/include/"
 
 ############################
 # Build Thunder-Tools
@@ -119,6 +123,17 @@ cmake -G Ninja -S ../entservices-helpers -B build/entservices-helpers \
     -DPLUGIN_HELPERS=ON \
     "-DCMAKE_CXX_FLAGS=-I$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h "
 cmake --build build/entservices-helpers --target install
+
+############################
+# Build ds-hal stub
+echo "======================================================================================"
+echo "building ds-hal stub"
+cmake -G Ninja -S "$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/devicesettings" \
+    -B build/ds-hal \
+    -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
+    -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
+    -DCMAKE_CXX_FLAGS="-I$GITHUB_WORKSPACE/install/usr/include"
+cmake --build build/ds-hal --target install
 
 ############################
 # generating extrnal headers

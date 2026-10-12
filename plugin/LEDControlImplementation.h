@@ -19,18 +19,14 @@
 
 #pragma once
 
-#include <binder/IServiceManager.h>
-#include <binder/ProcessState.h>
-#include <utils/StrongPointer.h>
-#include <com/rdk/hal/indicator/IIndicatorManager.h>
-#include <com/rdk/hal/indicator/IIndicator.h>
-
 #include "Module.h"
 
 #include <com/com.h>
 #include <core/core.h>
 #include <interfaces/Ids.h>
 #include <interfaces/ILEDControl.h>
+
+#include "dsFPDTypes.h"
 
 namespace WPEFramework
 {
@@ -62,8 +58,7 @@ namespace WPEFramework
             private:
                 mutable Core::CriticalSection _adminLock;
                 bool m_isPlatInitialized;
-                android::sp<com::rdk::hal::indicator::IIndicatorManager> m_indicatorManager;
-                android::sp<com::rdk::hal::indicator::IIndicator> m_indicator;
+                unsigned int m_SupportedLEDStates;
 
                 // New method used by GetLEDState but not exposed in the interface.
                 Core::hresult GetLEDState(LEDControlState& ledState);
