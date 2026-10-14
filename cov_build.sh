@@ -13,8 +13,6 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-ledcontrol \
 -DUSE_THUNDER_R4=ON \
 -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
 -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
--DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/install/usr" \
--DWPEFrameworkHelpers_INCLUDE_DIRS="$GITHUB_WORKSPACE/install/usr/include/wpeframework/helpers" \
 -DCMAKE_VERBOSE_MAKEFILE=ON \
 -DCMAKE_DISABLE_FIND_PACKAGE_IARMBus=ON \
 -DCMAKE_DISABLE_FIND_PACKAGE_RFC=ON \
@@ -31,10 +29,6 @@ cmake -G Ninja -S "$GITHUB_WORKSPACE" -B build/entservices-ledcontrol \
 -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks \
 -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/thunder \
 -I ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/devicesettings \
--I ${GITHUB_WORKSPACE}/entservices-helpers/helpers \
--I ${GITHUB_WORKSPACE}/../entservices-helpers/helpers \
--I ${GITHUB_WORKSPACE}/install/usr/include \
--I ${GITHUB_WORKSPACE}/install/usr/include/wpeframework/helpers \
 -I /usr/include/libdrm \
 -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/Iarm.h \
 -include ${GITHUB_WORKSPACE}/entservices-testframework/Tests/mocks/Rfc.h \

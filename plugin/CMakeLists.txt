@@ -26,7 +26,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
-find_package(${NAMESPACE}Helpers REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
         LEDControl.cpp
@@ -36,16 +35,13 @@ set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES)
 
-target_include_directories(${MODULE_NAME} PRIVATE
-        ${CMAKE_SOURCE_DIR}/../entservices-helpers/helpers
-        ${CMAKE_SOURCE_DIR}/entservices-helpers/helpers)
+target_include_directories(${MODULE_NAME} PRIVATE ../helpers)
 
 target_link_libraries(${MODULE_NAME}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
-        ${NAMESPACE}Definitions::${NAMESPACE}Definitions
-        ${NAMESPACE}::${NAMESPACE}Helpers)
+        ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 
 install(TARGETS ${MODULE_NAME}
         DESTINATION lib/${STORAGE_DIRECTORY}/plugins)
@@ -81,11 +77,9 @@ else()
 endif()
 
 
-target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE
-        ${CMAKE_SOURCE_DIR}/../entservices-helpers/helpers
-        ${CMAKE_SOURCE_DIR}/entservices-helpers/helpers)
+target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
 target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE indicator-cpp)
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${NAMESPACE}::${NAMESPACE}Helpers -lpthread)
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins -lpthread)
 
 #target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 

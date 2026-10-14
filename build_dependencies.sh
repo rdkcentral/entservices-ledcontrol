@@ -33,9 +33,6 @@ git clone --branch develop https://github.com/rdkcentral/entservices-apis.git
 cd ..
 git clone --branch develop https://github.com/rdkcentral/entservices-helpers.git
 cd "$GITHUB_WORKSPACE"
-if [ ! -e "$GITHUB_WORKSPACE/entservices-helpers" ]; then
-    ln -s "$GITHUB_WORKSPACE/../entservices-helpers" "$GITHUB_WORKSPACE/entservices-helpers"
-fi
 
 git clone --branch feature/RDKEMW-25013 https://github.com/rdkcentral/entservices-testframework.git
 
@@ -114,9 +111,6 @@ cmake -G Ninja -S ../entservices-helpers -B build/entservices-helpers \
     -DEXCEPTIONS_ENABLE=ON \
     -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
     -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
-    -DUSE_THUNDER_R4=ON \
-    -DHIDE_NON_EXTERNAL_SYMBOLS=OFF \
-    -DPLUGIN_HELPERS=ON \
     "-DCMAKE_CXX_FLAGS=-I$GITHUB_WORKSPACE/entservices-testframework/Tests/mocks -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers -I$GITHUB_WORKSPACE/entservices-testframework/Tests/headers/rdk/iarmbus -include $GITHUB_WORKSPACE/entservices-testframework/Tests/mocks/Iarm.h "
 cmake --build build/entservices-helpers --target install
 
