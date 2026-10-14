@@ -80,7 +80,6 @@ echo "==========================================================================
 echo "buliding entservices-apis"
 cd entservices-apis
 rm -rf jsonrpc/DTV.json
-patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/RDKEMW-1007.patch
 cd ..
 
 cmake -G Ninja -S entservices-apis  -B build/entservices-apis \
