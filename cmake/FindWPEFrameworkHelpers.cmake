@@ -9,11 +9,16 @@
 
 find_library(WPEFrameworkHelpers_LIBRARIES
     NAMES WPEFrameworkHelpers
-    PATH_SUFFIXES wpeframework/plugins)
+    HINTS "${CMAKE_INSTALL_PREFIX}"
+    PATH_SUFFIXES lib/wpeframework/plugins wpeframework/plugins lib)
 
 find_path(WPEFrameworkHelpers_INCLUDE_DIRS
     NAMES UtilsLogging.h
-    PATH_SUFFIXES wpeframework/helpers)
+    HINTS "${CMAKE_INSTALL_PREFIX}"
+    PATHS
+        "${CMAKE_SOURCE_DIR}/../entservices-helpers/helpers"
+        "${CMAKE_SOURCE_DIR}/entservices-helpers/helpers"
+    PATH_SUFFIXES include/wpeframework/helpers wpeframework/helpers helpers)
 
 set(WPEFrameworkHelpers_LIBRARIES
     ${WPEFrameworkHelpers_LIBRARIES}

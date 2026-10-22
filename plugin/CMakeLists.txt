@@ -26,6 +26,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(${NAMESPACE}Plugins REQUIRED)
 find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
+find_package(${NAMESPACE}Helpers REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
         LEDControl.cpp
@@ -35,13 +36,16 @@ set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED YES)
 
-target_include_directories(${MODULE_NAME} PRIVATE ../helpers)
+target_include_directories(${MODULE_NAME} PRIVATE
+        ${CMAKE_SOURCE_DIR}/../entservices-helpers/helpers
+        ${CMAKE_SOURCE_DIR}/entservices-helpers/helpers)
 
 target_link_libraries(${MODULE_NAME}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
-        ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
+        ${NAMESPACE}Definitions::${NAMESPACE}Definitions
+        ${NAMESPACE}::${NAMESPACE}Helpers)
 
 install(TARGETS ${MODULE_NAME}
         DESTINATION lib/${STORAGE_DIRECTORY}/plugins)
@@ -67,19 +71,29 @@ endif (RDK_SERVICES_L2_TEST)
 
 target_compile_definitions(${PLUGIN_IMPLEMENTATION} PRIVATE MODULE_NAME=Plugin_${PLUGIN_NAME})
 
-find_package(Binder QUIET)
-if (Binder_FOUND)
-    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_INCLUDE_DIRS})
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${Binder_LIBRARIES})
-else()
-    # Fall back to conventional binder library names when no cmake package is available
-    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE libbinder.so libutils.so)
+find_path(DSHAL_INCLUDE_DIRS
+    NAMES dsFPD.h
+    PATHS
+        ${CMAKE_SOURCE_DIR}/../rdk-halif-device_settings/include
+        ${CMAKE_INSTALL_PREFIX}/include
+        ${CMAKE_SYSROOT}/usr/include
+    PATH_SUFFIXES
+        rdk/ds
+        rdk/halif/ds-hal
+)
+if (DSHAL_INCLUDE_DIRS)
+    target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ${DSHAL_INCLUDE_DIRS})
 endif()
 
+find_library(OEMHAL_LIBRARIES NAMES ds-hal)
+if (OEMHAL_LIBRARIES)
+    target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE -Wl,--no-as-needed ${OEMHAL_LIBRARIES} -Wl,--as-needed)
+endif()
 
-target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE ../helpers)
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE indicator-cpp)
-target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins -lpthread)
+target_include_directories(${PLUGIN_IMPLEMENTATION} PRIVATE
+        ${CMAKE_SOURCE_DIR}/../entservices-helpers/helpers
+        ${CMAKE_SOURCE_DIR}/entservices-helpers/helpers)
+target_link_libraries(${PLUGIN_IMPLEMENTATION} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins ${NAMESPACE}::${NAMESPACE}Helpers -lpthread)
 
 #target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
 
