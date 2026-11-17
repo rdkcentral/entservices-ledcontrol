@@ -37,7 +37,7 @@ if [ ! -e "$GITHUB_WORKSPACE/entservices-helpers" ]; then
     ln -s "$GITHUB_WORKSPACE/../entservices-helpers" "$GITHUB_WORKSPACE/entservices-helpers"
 fi
 
-git clone --branch 2.1.0 https://github.com/rdkcentral/entservices-testframework.git
+git clone --branch develop https://github.com/rdkcentral/entservices-testframework.git
 
 git clone --branch 6.0.1 https://github.com/rdkcentral/rdk-halif-device_settings.git
 mkdir -p "$GITHUB_WORKSPACE/install/usr/include"
