@@ -60,11 +60,11 @@ LEDControl_L2test::LEDControl_L2test()
 {
     uint32_t status = Core::ERROR_GENERAL;
 
-    ON_CALL(*p_dsFPDMock, dsFPInit())
+    ON_CALL(*p_dsFPDHalMock, dsFPInit())
         .WillByDefault(testing::Return(dsERR_NONE));
 
     /* In constructor, plugin prefetches the supported LED states. Enable every states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>(
                 (1 << dsFPD_LED_DEVICE_ACTIVE) | (1 << dsFPD_LED_DEVICE_STANDBY) |
@@ -98,7 +98,7 @@ LEDControl_L2test::~LEDControl_L2test()
 {
     TEST_LOG("Inside LEDControl_L2test destructor");
 
-    ON_CALL(*p_dsFPDMock, dsFPTerm())
+    ON_CALL(*p_dsFPDHalMock, dsFPTerm())
         .WillByDefault(testing::Return(dsERR_NONE));
 
     if (m_LEDplugin) {
@@ -154,7 +154,7 @@ TEST_F(LEDControl_L2test, JSONRPC_GetSupportedLEDStates_ACTIVE)
     JsonObject param, result;
 
     //mock dsFPGetSupportedLEDStates to respond with ACTIVE and STANDBY states
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_ACTIVE | 1 << dsFPD_LED_DEVICE_STANDBY),
             ::testing::Return(dsERR_NONE)));
@@ -174,7 +174,7 @@ TEST_F(LEDControl_L2test, JSONRPC_Set_LEDState_ACTIVE)
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject param, response;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     param["state"] = "ACTIVE";
@@ -192,7 +192,7 @@ TEST_F(LEDControl_L2test, JSONRPC_Get_LEDState_ACTIVE)
     uint32_t status = Core::ERROR_GENERAL;
     JsonObject param, result;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_ACTIVE),
             ::testing::Return(dsERR_NONE)));
@@ -216,7 +216,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_ACTIVE)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_ACTIVE),
             ::testing::Return(dsERR_NONE)));
@@ -246,7 +246,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_STANDBY)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_STANDBY),
             ::testing::Return(dsERR_NONE)));
@@ -276,7 +276,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_WPSCONNECTING)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_WPS_CONNECTING),
             ::testing::Return(dsERR_NONE)));
@@ -306,7 +306,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_WPSCONNECTED)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_WPS_CONNECTED),
             ::testing::Return(dsERR_NONE)));
@@ -336,7 +336,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_WPSERROR)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_WPS_ERROR),
             ::testing::Return(dsERR_NONE)));
@@ -366,7 +366,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_RESET)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_FACTORY_RESET),
             ::testing::Return(dsERR_NONE)));
@@ -396,7 +396,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_USBUPGRADE)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_USB_UPGRADE),
             ::testing::Return(dsERR_NONE)));
@@ -426,7 +426,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_DOWNLOADERROR)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(1 << dsFPD_LED_DEVICE_SOFTWARE_DOWNLOAD_ERROR),
             ::testing::Return(dsERR_NONE)));
@@ -457,7 +457,7 @@ TEST_F(LEDControl_L2test, GetSupportedLEDStates_ErrorCase)
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
     //return dsERR_GENERAL for failure case
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::Return(dsERR_GENERAL));
 
     status = m_LEDplugin->GetSupportedLEDStates(supportedLEDStates, success);
@@ -476,12 +476,12 @@ TEST_F(LEDControl_L2test, Set_LEDState_ACTIVE)
     bool success = false;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_ACTIVE)),
             ::testing::Return(dsERR_NONE)));
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -498,7 +498,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_ACTIVE)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_ACTIVE),
             ::testing::Return(dsERR_NONE)));
@@ -521,12 +521,12 @@ TEST_F(LEDControl_L2test, Set_LEDState_STANDBY)
     bool success = false;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_STANDBY)),
             ::testing::Return(dsERR_NONE)));
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -543,7 +543,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_STANDBY)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_STANDBY),
             ::testing::Return(dsERR_NONE)));
@@ -566,12 +566,12 @@ TEST_F(LEDControl_L2test, Set_LEDState_WPSCONNECTING)
     bool success = false;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_WPS_CONNECTING)),
             ::testing::Return(dsERR_NONE)));
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -588,7 +588,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_WPSCONNECTING)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_WPS_CONNECTING),
             ::testing::Return(dsERR_NONE)));
@@ -611,12 +611,12 @@ TEST_F(LEDControl_L2test, Set_LEDState_CONNECTED)
     bool success = false;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_WPS_CONNECTED)),
             ::testing::Return(dsERR_NONE)));
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -633,7 +633,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_WPSCONNECTED)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_WPS_CONNECTED),
             ::testing::Return(dsERR_NONE)));
@@ -656,12 +656,12 @@ TEST_F(LEDControl_L2test, Set_LEDState_ERROR)
     bool success = false;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_WPS_ERROR)),
             ::testing::Return(dsERR_NONE)));
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -678,7 +678,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_ERROR)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_WPS_ERROR),
             ::testing::Return(dsERR_NONE)));
@@ -701,12 +701,12 @@ TEST_F(LEDControl_L2test, Set_LEDState_FACTORYRESET)
     bool success = false;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_FACTORY_RESET)),
             ::testing::Return(dsERR_NONE)));
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -723,7 +723,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_FACTORYRESET)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_FACTORY_RESET),
             ::testing::Return(dsERR_NONE)));
@@ -746,12 +746,12 @@ TEST_F(LEDControl_L2test, Set_LEDState_USBUPGRADE)
     bool success = false;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_USB_UPGRADE)),
             ::testing::Return(dsERR_NONE)));
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -768,7 +768,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_USBUPGRADE)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_USB_UPGRADE),
             ::testing::Return(dsERR_NONE)));
@@ -791,12 +791,12 @@ TEST_F(LEDControl_L2test, Set_LEDState_DOWNLOADERROR)
     bool success = false;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_SOFTWARE_DOWNLOAD_ERROR)),
             ::testing::Return(dsERR_NONE)));
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_NONE));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -813,7 +813,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_DOWNLOADERROR)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_SOFTWARE_DOWNLOAD_ERROR),
             ::testing::Return(dsERR_NONE)));
@@ -834,7 +834,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_FPD_LED_DEVICE_NONE)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_NONE),
             ::testing::Return(dsERR_NONE)));
@@ -857,7 +857,7 @@ TEST_F(LEDControl_L2test, Set_LEDState_NONE)
     bool success = true;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_NONE)),
             ::testing::Return(dsERR_NONE)));
@@ -878,7 +878,7 @@ TEST_F(LEDControl_L2test, Set_LEDState_NONE_NegativeTC)
     bool success = true;
 
     /* In constructor, plugin prefetches the supported LED states. Enable required states. */
-    ON_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    ON_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillByDefault(::testing::DoAll(
             ::testing::SetArgPointee<0>((1 << dsFPD_LED_DEVICE_ACTIVE)),
             ::testing::Return(dsERR_NONE)));
@@ -897,7 +897,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_defaultCase)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::DoAll(
             ::testing::SetArgPointee<0>(dsFPD_LED_DEVICE_MAX),
             ::testing::Return(dsERR_NONE)));
@@ -917,7 +917,7 @@ TEST_F(LEDControl_L2test, Get_LEDState_Errorcase)
     Exchange::ILEDControl::LEDState LEDState;
     uint32_t status = Core::ERROR_NONE;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_GENERAL));
 
     status = m_LEDplugin->GetLEDState(LEDState);
@@ -966,7 +966,7 @@ TEST_F(LEDControl_L2test, Set_LEDState_dsFPSetLEDState_Error)
     Exchange::ILEDControl::LEDControlState State = Exchange::ILEDControl::LEDSTATE_DOWNLOAD_ERROR;
     bool success = true;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Return(dsERR_GENERAL));
 
     status = m_LEDplugin->SetLEDState(State, success);
@@ -984,7 +984,7 @@ TEST_F(LEDControl_L2test, dsFPGetSupportedLEDStates_RaiseException)
     bool success = false;
     WPEFramework::RPC::IStringIterator* supportedLEDStates;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetSupportedLEDStates(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetSupportedLEDStates(::testing::_))
         .WillOnce(::testing::Invoke([](unsigned int* states) {
             throw std::runtime_error("Simulated Exception");
             return dsERR_NONE;
@@ -1004,7 +1004,7 @@ TEST_F(LEDControl_L2test, dsFPGetLEDState_RaiseException)
     uint32_t status = Core::ERROR_NONE;
     Exchange::ILEDControl::LEDState LEDState;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPGetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPGetLEDState(::testing::_))
         .WillOnce(::testing::Invoke([](dsFPDLedState_t* states) {
             throw std::runtime_error("Simulated Exception");
             return dsERR_NONE;
@@ -1024,7 +1024,7 @@ TEST_F(LEDControl_L2test, dsFPSetLEDState_RaiseException)
     Exchange::ILEDControl::LEDControlState State = Exchange::ILEDControl::LEDSTATE_DOWNLOAD_ERROR;
     bool success = true;
 
-    EXPECT_CALL(*p_dsFPDMock, dsFPSetLEDState(::testing::_))
+    EXPECT_CALL(*p_dsFPDHalMock, dsFPSetLEDState(::testing::_))
         .WillOnce(::testing::Invoke([](dsFPDLedState_t states) {
             throw std::runtime_error("Simulated Exception");
             return dsERR_NONE;
