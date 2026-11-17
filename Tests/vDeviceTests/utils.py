@@ -29,6 +29,7 @@ import json
 import subprocess
 import tempfile
 import re
+import time
 from pathlib import Path
 
 
@@ -63,6 +64,13 @@ VCOMPONENT_API_URL = (
     os.environ.get("VCOMPONENT_API_URL")
     or f"http://{TARGET_HOST}:{VCOMPONENT_PORT}/api/postKVP"
 )
+PLUGIN_INIT_WAIT = float(
+    os.environ.get(
+        "LEDCONTROL_PLUGIN_INIT_WAIT",
+        os.environ.get("PLUGIN_INIT_WAIT", "6"),
+    )
+)
+SKIPPED = "SKIPPED"
 
 
 # ---------- ANSI COLOR CONSTANTS ----------
@@ -131,20 +139,40 @@ def send_jsonrpc_command(method, params=None, request_id=1, timeout=5):
         return None
 
 
-def activate_plugin(callsign):
+def activate_plugin(callsign, timeout_seconds=40):
     '''Activate an RDK plugin via Controller.1.activate.
     Returns True on success, False otherwise.
     '''
-    response = send_jsonrpc_command(
-        "Controller.1.activate",
-        params={"callsign": callsign},
-        request_id=1234567890,
-    )
-    if not response:
-        return False
-    if "error" in response:
-        return False
-    return "result" in response
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        response = send_jsonrpc_command(
+            "Controller.1.activate",
+            params={"callsign": callsign},
+            request_id=1234567890,
+        )
+        if not response or "error" in response:
+            time.sleep(1)
+            continue
+        return "result" in response
+    return False
+
+
+def deactivate_plugin(callsign, timeout_seconds=40):
+    '''Deactivate an RDK plugin via Controller.1.deactivate.
+    Returns True on success, False otherwise.
+    '''
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        response = send_jsonrpc_command(
+            "Controller.1.deactivate",
+            params={"callsign": callsign},
+            request_id=1234567890,
+        )
+        if not response or "error" in response:
+            time.sleep(1)
+            continue
+        return "result" in response
+    return False
 
 def send_curl_command(curl_command):
     '''This function is used to send the curl commands to get the output response using os module'''

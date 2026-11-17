@@ -13,7 +13,7 @@
  * @dependencies
  *  - utils.py
  *  - ledIndicator_Curl.py
- *  - suiteManager.py
+ *  - SuiteManager.py
  *  - vcomponent_configurations/indicator/commands/*.yaml (for vComponent scenarios)
  *
  * @expected_result
