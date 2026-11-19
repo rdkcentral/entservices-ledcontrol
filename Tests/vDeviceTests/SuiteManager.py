@@ -358,7 +358,55 @@ def run_suite(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Run LED indicator test suites")
+    test_case_help = "\n".join(
+        f"  {suite_name}:\n"
+        + "\n".join(f"    {module_name}" for module_name in config["tests"])
+        for suite_name, config in SUITES.items()
+    )
+    parser = argparse.ArgumentParser(
+        description="Run LED indicator L3 test suites",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python3 %(prog)s --help\n"
+            "  python3 %(prog)s ledindicator       Run all tests\n"
+            "  python3 %(prog)s -t ledindicator    Run all tests with timing\n"
+            "  python3 %(prog)s ledindicator --test TCID01_Get_LED_State\n"
+            "  python3 %(prog)s ledindicator --test TCID01_Get_LED_State "
+            "--test TCID02_Get_Supported_LED_States\n"
+            "  python3 %(prog)s ledindicator --disable-mw-fallback\n"
+            "\n"
+            "Testcase IDs / module names (execution order):\n"
+            f"{test_case_help}\n"
+            "\n"
+            "Test selection:\n"
+            "  Without --test, all registered tests run in order.\n"
+            "  Supply the full module name, not a bare ID such as TCID01.\n"
+            "  Repeat --test to run multiple tests in the supplied order.\n"
+            "\n"
+            "Execution / prompts:\n"
+            "  No interactive prompts. Help exits without running tests or contacting services.\n"
+            "  LEDControl is activated before each test and deactivated afterwards.\n"
+            "  No suite initializer is configured.\n"
+            "  AUTO_ACTIVATE_PLUGINS=0 skips automatic activation/deactivation.\n"
+            "  A run with only passes and skips succeeds; failures return exit status 1.\n"
+            "\n"
+            "Middleware fallback:\n"
+            "  Enabled by default; an existing ENABLE_INDICATOR_MW_FALLBACK value is preserved.\n"
+            "  --enable-mw-fallback or --disable-mw-fallback overrides the environment.\n"
+            "  These two options are mutually exclusive.\n"
+            "\n"
+            "Environment settings:\n"
+            "  TARGET_HOST                  Endpoint host (default: 127.0.0.1)\n"
+            "  JSONRPC_PORT                 JSON-RPC port (default: 9998)\n"
+            "  WPEFRAMEWORK_JSONRPC_URL      Full JSON-RPC URL (highest priority)\n"
+            "  JSONRPC_URL                  Fallback full JSON-RPC URL\n"
+            "  VCOMPONENT_PORT              vComponent port (default: 8080)\n"
+            "  VCOMPONENT_API_URL           Full vComponent postKVP URL override\n"
+            "  LEDCONTROL_PLUGIN_INIT_WAIT  Activation wait in seconds (default: 6)\n"
+            "  PLUGIN_INIT_WAIT              Shared fallback for the activation wait\n"
+        ),
+    )
     parser.add_argument(
         "suite",
         help=f"Test suite name. Available: {list(SUITES.keys())}",

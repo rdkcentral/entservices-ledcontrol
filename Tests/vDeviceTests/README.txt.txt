@@ -6,6 +6,17 @@ git clone git@github.com:rdkcentral/entservices-ledcontrol.git
 
 cd entservices-ledcontrol/Tests/vDeviceTests
 
+Help:
+python3 SuiteManager.py -h
+python3 SuiteManager.py --help
+python3 SuiteManager.py ledindicator --help
+
+Help shows syntax, options (including middleware fallback), examples, environment
+settings, and every registered testcase ID with its full module name from SUITES.
+There are no interactive prompts. Help does not run tests or contact services.
+Use full module names with --test, not bare IDs like TCID01. Repeated --test
+options run cases in the supplied order; without --test, all cases run.
+
 Execute the SuiteManager with time:
 python3 SuiteManager.py -t ledindicator
 
