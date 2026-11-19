@@ -17,9 +17,11 @@ python3 SuiteManager.py ledindicator --test TCID01_Get_LED_State
 
 Run multiple selected tests by repeating --test.
 
-Plugin activation is done once before suite execution and deactivation is
-attempted after the suite finishes, including setup or test failures:
+Plugin lifecycle is per-test. Before every selected test, the plugin is
+activated and the optional initializer is run. The plugin is deactivated after
+that test, including setup or test failures:
 - ledindicator -> Controller.1.activate(callsign=org.rdk.LEDControl)
+- test -> Controller.1.deactivate
 
 Disable default activation only if needed:
 - export AUTO_ACTIVATE_PLUGINS=0

@@ -4,8 +4,8 @@
  * @brief Test suite manager for orchestrating LED indicator test cases.
  *
  * @testcase SuiteManager
- * @details Loads selected LED indicator tests, activates required plugins once per suite,
- *          runs optional suite initialization, and reports pass/fail/skip results.
+ * @details Loads selected LED indicator tests, activates and initializes required plugins
+ *          for each test, and reports pass/fail/skip results.
  *
  * @precondition
  *  - org.rdk.LEDControl is available through the configured JSON-RPC endpoint.
@@ -84,7 +84,7 @@ SUITE_INIT_MODULES = {
 }
 
 SUITE_LIFECYCLES = {
-    "ledindicator": "per_suite",
+    "ledindicator": "per_test",
 }
 
 
@@ -256,7 +256,7 @@ def run_suite(
     mw_fallback=None,
 ):
     lifecycle = SUITE_LIFECYCLES.get(suite_name)
-    if lifecycle != "per_suite":
+    if lifecycle != "per_test":
         raise ValueError(
             f"Unsupported lifecycle '{lifecycle}' for suite '{suite_name}'"
         )
@@ -283,60 +283,64 @@ def run_suite(
     skipped = 0
     skipped_cases = []
     failed_cases = []
-    activated_callsigns = []
-    setup_ok = True
-    cleanup_ok = True
     original_stdout = sys.stdout
 
-    try:
-        if auto_activate:
-            setup_ok, activated_callsigns = activate_test_plugins(suite_name)
-            if not setup_ok:
-                log_error(
-                    "Suite setup failed because plugin activation did not complete."
+    for tc_name, tc_fn in test_cases:
+        log_info(f"\n{'='*60}")
+        log_info(f"Running: {tc_name}")
+        log_info(f"{'='*60}")
+        captured = io.StringIO()
+        activated_callsigns = []
+        result = False
+        sys.stdout = captured
+        try:
+            plugins_ready = True
+            if auto_activate:
+                plugins_ready, activated_callsigns = activate_test_plugins(
+                    suite_name
                 )
 
-        if setup_ok and not run_suite_init(suite_name):
-            setup_ok = False
-            log_error(
-                "Aborting suite because initialization did not complete successfully."
-            )
-
-        if setup_ok:
-            for tc_name, tc_fn in test_cases:
-                log_info(f"\n{'='*60}")
-                log_info(f"Running: {tc_name}")
-                log_info(f"{'='*60}")
-                captured = io.StringIO()
-                sys.stdout = captured
+            if not plugins_ready:
+                log_error(
+                    "Test setup failed because plugin activation did not complete."
+                )
+            elif not run_suite_init(suite_name):
+                log_error(
+                    "Test setup failed because initialization did not complete."
+                )
+            else:
                 try:
                     result = tc_fn()
                 except Exception as exc:
                     result = False
                     print(f"EXCEPTION in {tc_name}: {exc}")
-                finally:
-                    sys.stdout = original_stdout
+        finally:
+            try:
+                if (
+                    auto_activate
+                    and not deactivate_test_plugins(activated_callsigns)
+                ):
+                    log_error("Test cleanup failed")
+                    result = False
+            finally:
+                sys.stdout = original_stdout
 
-                output = captured.getvalue()
-                print(output, end="")
+        output = captured.getvalue()
+        print(output, end="")
 
-                if result == SKIPPED:
-                    skipped += 1
-                    skipped_cases.append(tc_name)
-                    log_warning(f"[SKIP] {tc_name}")
-                elif result is True:
-                    passed += 1
-                    log_success(f"[PASS] {tc_name}")
-                else:
-                    failed += 1
-                    failed_cases.append(tc_name)
-                    log_error(f"[FAIL] {tc_name}")
+        if result == SKIPPED:
+            skipped += 1
+            skipped_cases.append(tc_name)
+            log_warning(f"[SKIP] {tc_name}")
+        elif result is True:
+            passed += 1
+            log_success(f"[PASS] {tc_name}")
+        else:
+            failed += 1
+            failed_cases.append(tc_name)
+            log_error(f"[FAIL] {tc_name}")
 
-                time.sleep(1)
-    finally:
-        sys.stdout = original_stdout
-        if auto_activate:
-            cleanup_ok = deactivate_test_plugins(activated_callsigns)
+        time.sleep(1)
 
     log_info(f"\n{'='*60}")
     log_info(
@@ -346,11 +350,9 @@ def run_suite(
         log_warning(f"Skipped cases: {skipped_cases}")
     if failed_cases:
         log_error(f"Failed cases: {failed_cases}")
-    if not cleanup_ok:
-        log_error("Suite cleanup failed")
     log_info(f"{'='*60}")
 
-    return setup_ok and cleanup_ok and failed == 0
+    return failed == 0
 
 
 if __name__ == "__main__":
