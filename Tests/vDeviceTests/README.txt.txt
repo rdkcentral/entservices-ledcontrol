@@ -6,6 +6,9 @@ git clone git@github.com:rdkcentral/entservices-ledcontrol.git
 
 cd entservices-ledcontrol/Tests/vDeviceTests
 
+Help and usage:
+python3 SuiteManager.py --help
+
 Execute the suiteManager with time:
 python3 suiteManager.py -t ledindicator 
 

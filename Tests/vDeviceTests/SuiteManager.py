@@ -155,23 +155,44 @@ def run_suite(suite_name, profiling_enabled=False):
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    profiling_enabled = False
+    import argparse
 
-    if args and args[0] == "-t":
-        profiling_enabled = True
-        args = args[1:]
+    test_case_help = "\n".join(
+        f"  {test_id} ({module_name}): {description.replace('_', ' ')}"
+        for module_name in SUITES["ledindicator"]["tests"]
+        for test_id, description in [module_name.split("_", 1)]
+    )
+    parser = argparse.ArgumentParser(
+        description="Run LED indicator test suites",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python3 %(prog)s ledindicator       Run all tests\n"
+            "  python3 %(prog)s -t ledindicator    Run all tests with timing\n"
+            "\n"
+            "Test case IDs (all registered tests run in order):\n"
+            f"{test_case_help}\n"
+            "\n"
+            "Execution:\n"
+            "  No interactive prompts. Help exits without running tests or contacting services.\n"
+            "  The LEDControl plugin is activated automatically unless disabled.\n"
+            "\n"
+            "Environment settings:\n"
+            "  AUTO_ACTIVATE_PLUGINS=0    Skip automatic plugin activation\n"
+            "  TARGET_HOST                Host for the endpoints (default: 127.0.0.1)\n"
+            "  JSONRPC_PORT               JSON-RPC port (default: 9998)\n"
+            "  VCOMPONENT_PORT            vComponent port (default: 8080)\n"
+        ),
+    )
+    parser.add_argument("suite", help=f"Test suite name. Available: {list(SUITES.keys())}")
+    parser.add_argument("-t", "--timing", action="store_true", help="Enable timing output")
+    args = parser.parse_args()
 
-    if len(args) < 1:
-        print("Usage: python suiteManager.py [-t] <suite_name>")
-        print(f"Available suites: {list(SUITES.keys())}")
-        sys.exit(1)
-
-    suite_arg = normalize_suite_name(args[0])
+    suite_arg = normalize_suite_name(args.suite)
     matching = [k for k in SUITES if normalize_suite_name(k) == suite_arg]
     if not matching:
-        log_error(f"Unknown suite '{args[0]}'. Available: {list(SUITES.keys())}")
+        log_error(f"Unknown suite '{args.suite}'. Available: {list(SUITES.keys())}")
         sys.exit(1)
 
-    ok = run_suite(matching[0], profiling_enabled=profiling_enabled)
+    ok = run_suite(matching[0], profiling_enabled=args.timing)
     sys.exit(0 if ok else 1)
